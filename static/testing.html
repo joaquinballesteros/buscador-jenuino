@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buscador JENUINO · Testing</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#181b22; --border:#272b34; --fg:#e8eaed;
+    --muted:#9aa0ab; --accent:#6ea8fe; --chip:#232a38; --chip-fg:#a9c7ff;
+    --good:#4ade80; --bad:#f87171; --violet:#c6a6ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       background:var(--bg);color:var(--fg);line-height:1.5}
+  header{padding:26px 20px 8px;text-align:center}
+  h1{margin:0;font-size:1.5rem}
+  h1 span{color:var(--accent)}
+  .sub{color:var(--muted);font-size:.85rem;margin-top:6px}
+  .sub a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px 60px}
+  .searchbar{display:flex;gap:10px;margin:20px 0;position:sticky;top:0;
+             background:var(--bg);padding:12px 0;z-index:5}
+  input[type=search]{flex:1;padding:13px 15px;font-size:1rem;border-radius:12px;
+       border:1px solid var(--border);background:var(--card);color:var(--fg)}
+  input[type=search]:focus{outline:none;border-color:var(--accent)}
+  button{padding:0 22px;font-size:1rem;border:0;border-radius:12px;cursor:pointer;
+         background:var(--accent);color:#0b1020;font-weight:600}
+  .stage{background:var(--card);border:1px solid var(--border);border-radius:14px;
+         padding:16px 18px;margin:14px 0}
+  .stage h2{margin:0 0 2px;font-size:1.05rem}
+  .stage .desc{color:var(--muted);font-size:.82rem;margin-bottom:12px}
+  .meta-line{color:var(--muted);font-size:.8rem;margin-bottom:10px}
+  .meta-line b{color:var(--fg)}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em}
+  td.num{font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
+  .bar{display:inline-block;height:8px;border-radius:4px;background:var(--accent);vertical-align:middle;margin-right:6px}
+  .frags{font-family:ui-monospace,Menlo,monospace;font-size:.74rem;color:var(--muted)}
+  .frags span:first-child{color:var(--fg)}
+  .badge{font-size:.7rem;padding:2px 8px;border-radius:999px;font-weight:600}
+  .keep{background:rgba(74,222,128,.15);color:var(--good)}
+  .drop{background:rgba(248,113,113,.15);color:var(--bad)}
+  .chip{background:var(--chip);color:var(--chip-fg);font-size:.72rem;padding:2px 8px;border-radius:999px;margin:2px;display:inline-block}
+  .concept{color:var(--violet)}
+  .sid{font-family:ui-monospace,Menlo,monospace;font-size:.68rem;color:var(--muted);
+       background:#0c0e13;padding:1px 6px;border-radius:5px;margin-right:7px}
+  .arith{font-family:ui-monospace,Menlo,monospace;font-size:.76rem;color:var(--muted)}
+  .arith b{color:var(--fg)}
+  .yr{color:var(--muted);font-size:.72rem}
+  .fix{color:var(--muted);font-size:.85rem;margin:6px 0 0}
+  .fix b{color:var(--fg)}
+  .empty{color:var(--muted);text-align:center;padding:20px}
+  .note{color:var(--muted);font-style:italic}
+  .spin{display:none;text-align:center;color:var(--muted);margin-top:24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Buscador <span>JENUINO</span> · Testing</h1>
+  <div class="sub">Pasos intermedios de la búsqueda: recuperador vectorial → grafo → ranker ·
+    <a href="/">volver al buscador</a></div>
+</header>
+<div class="wrap">
+  <div class="searchbar">
+    <input id="q" type="search" placeholder="escribe una consulta y mira cómo se construye el resultado…" autofocus>
+    <button id="go">Analizar</button>
+  </div>
+  <div class="spin" id="spin">Analizando…</div>
+  <div id="out"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const out = $("#out"), spin = $("#spin");
+function esc(t){return (t==null?"":String(t)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+const pct = x => (x*100).toFixed(1);
+const year = a => a.year ? `<span class="yr"> · ${a.year}</span>` : "";
+
+function bar(score, max=1){                 // barra proporcional a la similitud
+  const w = Math.max(0, Math.min(1, score/max)) * 60;
+  return `<span class="bar" style="width:${w}px"></span>`;
+}
+
+function stageText(d){
+  const rows = d.text_retriever.map((r,i)=>`
+    <tr>
+      <td class="num">${i+1}</td>
+      <td class="num">${bar(r.score)}${r.score.toFixed(3)}</td>
+      <td class="num">${r.best.toFixed(3)}</td>
+      <td class="frags">${r.top_fragments.map(f=>`<span>${f.toFixed(2)}</span>`).join(' ')}</td>
+      <td class="num">${r.n_fragments}</td>
+      <td>${esc(r.title)}${year(r)}</td>
+    </tr>`).join("");
+  return `<div class="stage">
+    <h2>1 · Recuperador vectorial (embeddings)</h2>
+    <div class="desc">Similitud coseno de la consulta con cada fragmento (~200 palabras),
+      agregada por artículo. Ordenado de mejor a peor.</div>
+    <div class="meta-line">pooling: <b>${d.pooling.mode}</b> · k=<b>${d.pooling.k}</b> ·
+      alpha=<b>${d.pooling.alpha}</b>  —  score = alpha·mejor + (1−alpha)·media de los k mejores</div>
+    <table><thead><tr>
+      <th>#</th><th>score agregado</th><th>mejor frag.</th>
+      <th>top fragmentos</th><th>nº frag.</th><th>artículo</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function stageGraph(g){
+  if(!g.ready) return `<div class="stage"><h2>2 · Grafo de conocimiento</h2>
+    <div class="empty note">El grafo no está construido; la búsqueda usa solo el recuperador vectorial.</div></div>`;
+  const seeds = g.seeds.map(s=>`<span class="chip"><span class="sid">${esc(s.id)}</span>${esc(s.title.slice(0,44))}</span>`).join(" ");
+  const ents = g.seed_entities.map(e=>`
+    <tr>
+      <td><span class="badge ${e.kept?'keep':'drop'}">${e.kept?'✓ usada':'✗ descartada'}</span></td>
+      <td class="num">${e.relevance==null?'<span class="note">sin vector</span>':e.relevance.toFixed(3)}</td>
+      <td class="concept">${esc(e.entity)}</td>
+    </tr>`).join("");
+  const rel = g.related.map(r=>`
+    <tr>
+      <td class="num">${r.peso}</td>
+      <td>${esc(r.title)}${year(r)}</td>
+      <td>${r.conceptos.map(c=>`<span class="chip concept">${esc(c)}</span>`).join(" ")}</td>
+    </tr>`).join("");
+  return `<div class="stage">
+    <h2>2 · Grafo de conocimiento</h2>
+    <div class="desc">Desde los mejores resultados (semillas) se recogen sus conceptos,
+      se filtran por afinidad con la consulta, y se traen otros artículos que los comparten.</div>
+    <div class="meta-line">índice de conceptos: <b>${esc(g.concept_index)}</b> ·
+      corte de relevancia: <b>${g.cutoff==null?'—':g.cutoff.toFixed(3)}</b>
+      (media + factor·desviación, en espacio centrado)</div>
+    <div class="meta-line">semillas: ${seeds}</div>
+    <h3 style="font-size:.85rem;margin:14px 0 4px">Conceptos de las semillas (afinidad con la consulta)
+      <span class="note" style="font-weight:400">— ${g.seed_entities_kept} usadas de ${g.seed_entities_total}${g.seed_entities_total>g.seed_entities.length?`, mostrando ${g.seed_entities.length}`:''}</span></h3>
+    <table><thead><tr><th>¿usada?</th><th>relevancia</th><th>concepto</th></tr></thead>
+      <tbody>${ents||'<tr><td colspan=3 class="note">sin conceptos</td></tr>'}</tbody></table>
+    <h3 style="font-size:.85rem;margin:16px 0 4px">Artículos relacionados (comparten conceptos)</h3>
+    <table><thead><tr><th>peso</th><th>artículo</th><th>conceptos compartidos</th></tr></thead>
+      <tbody>${rel||'<tr><td colspan=3 class="note">ninguno</td></tr>'}</tbody></table></div>`;
+}
+
+function stageRanker(d){
+  const wt=d.weights.texto, wg=d.weights.grafo;
+  const rows = d.ranker.map(r=>`
+    <tr>
+      <td class="num">${r.rank}</td>
+      <td class="num"><b>${r.final.toFixed(3)}</b></td>
+      <td class="arith">${wt}·<b>${r.text_score.toFixed(3)}</b> + ${wg}·<b>${r.graph_norm.toFixed(3)}</b></td>
+      <td>${esc(r.title)}${year(r)}</td>
+    </tr>`).join("");
+  return `<div class="stage">
+    <h2>3 · Ranker (combinación final)</h2>
+    <div class="desc">score final = peso_texto · similitud de texto + peso_grafo · empuje del grafo
+      (el empuje del grafo se normaliza a [0,1]).</div>
+    <div class="meta-line">peso_texto = <b>${wt}</b> · peso_grafo = <b>${wg}</b></div>
+    <table><thead><tr><th>#</th><th>score final</th><th>desglose</th><th>artículo</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+}
+
+function render(d){
+  if(d.error){ out.innerHTML = `<div class="empty">${esc(d.error)}</div>`; return; }
+  const fix = d.correction.applied
+    ? `<div class="stage"><div class="fix">Corrección ortográfica: <b>${esc(d.correction.original)}</b>
+        → se buscó <b>${esc(d.correction.corrected)}</b></div></div>` : "";
+  out.innerHTML = fix + stageText(d) + stageGraph(d.graph) + stageRanker(d);
+}
+
+async function analizar(){
+  const q = $("#q").value.trim();
+  if(q.length<2) return;
+  out.innerHTML=""; spin.style.display="block"; $("#go").disabled=true;
+  try{
+    const d = await (await fetch("/api/explain?q="+encodeURIComponent(q))).json();
+    render(d);
+  }catch(e){ out.innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
+  spin.style.display="none"; $("#go").disabled=false;
+}
+$("#go").onclick = analizar;
+$("#q").addEventListener("keydown", e => { if(e.key==="Enter") analizar(); });
+</script>
+</body>
+</html>

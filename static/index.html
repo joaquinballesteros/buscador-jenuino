@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buscador JENUINO · GraphRAG local</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#181b22; --border:#272b34; --fg:#e8eaed;
+    --muted:#9aa0ab; --accent:#6ea8fe; --chip:#232a38; --chip-fg:#a9c7ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       background:var(--bg);color:var(--fg);line-height:1.5}
+  header{padding:32px 20px 12px;text-align:center}
+  h1{margin:0;font-size:1.7rem;font-weight:700}
+  h1 span{color:var(--accent)}
+  .sub{color:var(--muted);font-size:.9rem;margin-top:6px}
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px 60px}
+  .searchbar{display:flex;gap:10px;margin:22px 0 6px;position:sticky;top:0;
+             background:var(--bg);padding:12px 0;z-index:5}
+  input[type=search]{flex:1;padding:14px 16px;font-size:1rem;border-radius:12px;
+       border:1px solid var(--border);background:var(--card);color:var(--fg)}
+  input[type=search]:focus{outline:none;border-color:var(--accent)}
+  button{padding:0 22px;font-size:1rem;border:0;border-radius:12px;cursor:pointer;
+         background:var(--accent);color:#0b1020;font-weight:600}
+  button:disabled{opacity:.5;cursor:default}
+  .status{font-size:.8rem;color:var(--muted);text-align:center;margin-bottom:10px}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px}
+  .ok{background:#4ade80}.no{background:#f59e0b}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+        padding:16px 18px;margin:12px 0}
+  .card h3{margin:0 0 4px;font-size:1.08rem}
+  .card h3 a{color:var(--fg);text-decoration:none}
+  .card h3 a:hover{color:var(--accent)}
+  .meta{color:var(--muted);font-size:.82rem;margin-bottom:8px}
+  .abstract{font-size:.92rem;color:#c8ccd4;margin:6px 0}
+  .chips{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:var(--chip);color:var(--chip-fg);font-size:.74rem;
+        padding:3px 9px;border-radius:999px}
+  .rel{color:var(--muted);font-size:.75rem;margin-top:8px}
+  .rel b{color:#c6a6ff}
+  .kwlabel{color:var(--muted);font-size:.7rem;margin-top:10px;text-transform:uppercase;letter-spacing:.04em}
+  .fix{color:var(--muted);font-size:.9rem;margin:4px 0 14px}
+  .fix b{color:var(--fg)}
+  .fix a{color:var(--accent);text-decoration:none}
+  .score{float:right;font-size:.78rem;color:var(--muted)}
+  .actions{margin-top:12px;display:flex;gap:8px;align-items:center}
+  .btn2{font-size:.78rem;padding:5px 12px;border-radius:8px;border:1px solid var(--border);
+        background:var(--chip);color:var(--fg);cursor:pointer;text-decoration:none}
+  .btn2:hover{border-color:var(--accent);color:var(--accent)}
+  pre.bibtex{display:none;margin-top:10px;padding:12px;background:#0c0e13;border:1px solid var(--border);
+        border-radius:10px;font-size:.78rem;color:#c8ccd4;overflow-x:auto;white-space:pre;
+        font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .empty{text-align:center;color:var(--muted);margin-top:40px}
+  .spinner{display:none;text-align:center;margin-top:30px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Buscador <span>JENUINO</span></h1>
+  <div class="sub">Búsqueda semántica sobre los artículos de las JENUI (2021–2025) · GraphRAG en local</div>
+</header>
+<div class="wrap">
+  <div class="searchbar">
+    <input id="q" type="search" placeholder="p. ej. gamificación en programación, evaluación por pares, ABP…" autofocus>
+    <button id="go">Buscar</button>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="spinner" id="spinner">Buscando…</div>
+  <div id="results"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const results = $("#results"), spinner = $("#spinner");
+
+async function status(){
+  try{
+    const s = await (await fetch("/api/status")).json();
+    $("#status").innerHTML =
+      `${s.articulos} artículos · ` +
+      `<span class="dot ${s.fulltext_listo?'ok':'no'}"></span>búsqueda ${s.fulltext_listo?'lista':'no lista'} · ` +
+      `<span class="dot ${s.grafo_listo?'ok':'no'}"></span>grafo ${s.grafo_listo?`(${s.entidades} conceptos)`:'construyéndose…'}`;
+  }catch(e){}
+}
+
+function esc(t){return (t||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+// Chips de palabras clave del artículo. Descarta fragmentos demasiado largos:
+// una palabra clave real es corta, así que un texto largo es basura de extracción.
+function kwChips(keywords){
+  // una palabra clave real es corta y de pocas palabras; lo demás es prosa colada
+  const kws = (keywords||"").split(/[,;]/).map(k=>k.trim())
+    .filter(k => k.length>=2 && k.length<=40 && k.split(/\s+/).length<=5).slice(0,8);
+  if(!kws.length) return "";
+  return `<div class="kwlabel">Palabras clave</div><div class="chips">`
+    + kws.map(k=>`<span class="chip">${esc(k)}</span>`).join("") + `</div>`;
+}
+
+function render(data){
+  if(data.error){ results.innerHTML = `<div class="empty">${esc(data.error)}</div>`; return; }
+  // aviso de corrección ortográfica, con opción de buscar el texto tal cual
+  const fix = data.corregido ? `<div class="fix">Mostrando resultados para
+      <b>${esc(data.corregido)}</b> · <a href="#" id="raw">buscar
+      «${esc(data.original)}» tal cual</a></div>` : "";
+  if(!data.results.length){ results.innerHTML = fix + `<div class="empty">Sin resultados.</div>`; return; }
+  results.innerHTML = fix + data.results.map(r => `
+    <div class="card">
+      <span class="score">${(r.score*100).toFixed(0)}%</span>
+      <h3><a href="${r.pdf}" target="_blank">${esc(r.title)}</a></h3>
+      <div class="meta">${esc(r.authors)}${r.year? ' · JENUI '+r.year:''}${r.category? ' · '+esc(r.category):''}</div>
+      <div class="abstract">${esc(r.abstract)}</div>
+      ${r.shared_concepts && r.shared_concepts.length ?
+        `<div class="rel">🔗 Relacionado por: <b>${r.shared_concepts.map(esc).join(', ')}</b></div>`:''}
+      ${kwChips(r.keywords)}
+      <div class="actions">
+        <a class="btn2" href="${r.pdf}" target="_blank">📄 PDF</a>
+        ${r.bibtex ? `<button class="btn2" onclick="toggleBib('${r.id}')">📚 BibTeX</button>
+        <button class="btn2" onclick="copyBib('${r.id}', this)">📋 Copiar cita</button>`:''}
+      </div>
+      ${r.bibtex ? `<pre class="bibtex" id="bib-${r.id}">${esc(r.bibtex)}</pre>`:''}
+    </div>`).join("");
+}
+
+async function buscar(corregir=true){
+  const q = $("#q").value.trim();
+  if(q.length<2) return;
+  results.innerHTML=""; spinner.style.display="block"; $("#go").disabled=true;
+  try{
+    const url = "/api/search?q="+encodeURIComponent(q)+(corregir?"":"&corregir=false");
+    const data = await (await fetch(url)).json();
+    render(data);
+    const raw = document.getElementById("raw");
+    if(raw) raw.onclick = e => { e.preventDefault(); buscar(false); };  // buscar tal cual
+  }catch(e){ results.innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
+  spinner.style.display="none"; $("#go").disabled=false;
+}
+
+function toggleBib(id){
+  const el = document.getElementById("bib-"+id);
+  if(el) el.style.display = el.style.display==="block" ? "none" : "block";
+}
+async function copyBib(id, btn){
+  const el = document.getElementById("bib-"+id);
+  if(!el) return;
+  try{
+    await navigator.clipboard.writeText(el.textContent);
+    const prev = btn.textContent; btn.textContent = "✅ Copiado";
+    setTimeout(()=>btn.textContent = prev, 1500);
+  }catch(e){
+    el.style.display = "block";   // fallback: mostrar para copiar a mano
+  }
+}
+
+$("#go").onclick = buscar;
+$("#q").addEventListener("keydown", e => { if(e.key==="Enter") buscar(); });
+status(); setInterval(status, 15000);
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+{
+  "_comentario": "Configuración general del Buscador JENUI. Cambia estos valores sin tocar código. Prioridad: variable de entorno > este fichero > valor por defecto.",
+  "providers": {
+    "_comentario": "Estrategias intercambiables (ver providers.py). Elegir ANTES de construir el índice: cambiar embeddings obliga a reconstruir.",
+    "llm": {
+      "provider": "openai",
+      "model": "gpt-5.4-nano"
+    },
+    "embeddings": {
+      "provider": "ollama",
+      "model": "bge-m3",
+      "dim": null
+    },
+    "ollama": {
+      "host": "http://localhost:11434",
+      "num_ctx": 16384
+    }
+  },
+  "ingestion": {
+    "_comentario": "Ingesta de PDFs.",
+    "_comentario_biblio": "Quita la sección de bibliografía del cuerpo antes de indexar: evita que los títulos citados se conviertan en entidades del grafo. No afecta a título/resumen/palabras clave.",
+    "quitar_bibliografia": true
+  },
+  "graph": {
+    "_comentario": "Construcción del grafo de conocimiento (LightRAG).",
+    "scope": "full",
+    "language": "Spanish",
+    "chunk_token_size": 1800,
+    "chunk_overlap_token_size": 100,
+    "entity_extract_max_gleaning": 1,
+    "_comentario_max_async": "Con Ollama local usa 2 (limita la GPU). Con una API puedes subirlo mucho: 4-8 según tu tier de rate limit.",
+    "llm_max_async": 8,
+    "_comentario_entity_types": "Ontología del dominio: QUÉ debe extraer el LLM. La ontología por defecto de LightRAG (Person/Organization/Location) hacía que el 49% de las entidades fuesen autores y universidades, que no relacionan artículos por tema. Añade o quita tipos según tu corpus.",
+    "entity_types": [
+      "metodologia_docente",
+      "herramienta",
+      "tecnologia",
+      "asignatura",
+      "competencia",
+      "instrumento_evaluacion",
+      "concepto_educativo"
+    ]
+  },
+  "fulltext": {
+    "_comentario": "Índice vectorial de texto completo (solo embeddings, sin LLM).",
+    "chunk_chars": 1200,
+    "overlap_chars": 150,
+    "batch_size": 16
+  },
+  "search": {
+    "_comentario": "Ranking: score = peso_texto * similitud + peso_grafo * empuje_del_grafo.",
+    "top_k": 15,
+    "_comentario_orto": "Corrector ortográfico de la consulta, con vocabulario del propio corpus (no toca términos técnicos). Corrige solo erratas evidentes; la búsqueda semántica ya tolera lo leve.",
+    "corregir_ortografia": true,
+    "peso_texto": 0.85,
+    "peso_grafo": 0.3,
+    "_comentario_pooling": "Cómo se agrega un artículo troceado a un solo score. max=mejor fragmento; mean_topk=media de los k mejores (premia cobertura); hybrid=alpha*max+(1-alpha)*media_topk. Evita que un artículo que toca el tema de refilón empate con uno que lo trata a fondo.",
+    "pooling": "hybrid",
+    "pooling_k": 5,
+    "pooling_alpha": 0.5,
+    "_comentario_semillas": "Artículos que siembran la expansión por grafo. Pocos y solo si se parecen de verdad a la consulta (umbral_semilla), para que un artículo genérico del fondo del ranking no arrastre conceptos ajenos al tema.",
+    "n_semillas": 3,
+    "umbral_semilla": 0.5,
+    "max_articulos_por_entidad": 12,
+    "_comentario_concepto": "Filtro de relevancia de conceptos (espacio CENTRADO: se resta la media para separar mejor). 'umbral_concepto' es el suelo absoluto; 'factor_relativo' fija un corte adaptativo por consulta = media + factor*desviación de las entidades candidatas. Requiere el índice de conceptos (build_concepts.py mejor, o merge_aliases.py); si no está, no filtra.",
+    "umbral_concepto": 0.2,
+    "factor_relativo": 0.5,
+    "_comentario_maxconceptos": "Tope de conceptos de las semillas que se usan para expandir por grafo (los más afines a la consulta). Evita que una consulta débil, como un acrónimo corto, arrastre decenas de conceptos mediocres. 0 = sin tope.",
+    "max_conceptos_semilla": 20,
+    "_comentario_alias": "Umbral de similitud coseno para fusionar entidades equivalentes (merge_aliases.py). Calibrado con un barrido sobre este corpus: a 0.92 ya fusionaba conceptos distintos (años académicos '2017/2018' con '2016/2017', 'Pearson y Spearman' con 'Spearman'). De 0.94 hacia arriba todas las fusiones revisadas eran correctas. Bajarlo gana muy poca conectividad (+0.5 pp por cada 0.02) a cambio de errores reales.",
+    "umbral_alias": 0.95,
+    "_comentario_descartados": "Red de seguridad: tipos de entidad que son METADATOS y no relacionan por tema. Se filtran al leer el grafo, por si el LLM ignora la ontología pedida. Se normalizan (minúsculas, sin acentos ni guiones) antes de comparar.",
+    "tipos_entidad_descartados": [
+      "person",
+      "persona",
+      "autor",
+      "author",
+      "people",
+      "organization",
+      "organizacion",
+      "institucion",
+      "organisation",
+      "empresa",
+      "location",
+      "ubicacion",
+      "lugar",
+      "geo",
+      "place",
+      "event",
+      "evento",
+      "date",
+      "fecha",
+      "unknown",
+      "other",
+      "otro",
+      "obra",
+      "obraliteraria",
+      "publicacion",
+      "documento",
+      "articulo",
+      "content"
+    ]
+  }
+}
