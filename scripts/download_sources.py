@@ -3,7 +3,7 @@
 
 Es el primer paso del proceso, antes de ingest.py: pdf/ y fichas/ no se
 versionan (son actas con copyright de JENUI/los autores), así que se traen
-desde la web oficial a partir de enlaces_jenui.csv (sí versionado).
+desde la web oficial a partir de fuentes/enlaces_jenui.csv (sí versionado).
 
 Incremental: salta los ficheros que ya existen. Ejecutar desde la raíz:
 
@@ -22,7 +22,7 @@ import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
-CSV_FILE = ROOT / "enlaces_jenui.csv"
+CSV_FILE = ROOT / "fuentes" / "enlaces_jenui.csv"
 USER_AGENT = "buscador-jenui/1.0 (+https://aenui.org)"
 
 

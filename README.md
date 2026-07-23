@@ -58,7 +58,7 @@ pip install -r requirements.txt
   y BibTeX. Se usan para corregir títulos/autores/acentos y para las citas.
 
 Ninguna de las dos carpetas se versiona: son las actas de JENUI, con copyright
-de JENUI/los autores. En su lugar se versiona [`enlaces_jenui.csv`](enlaces_jenui.csv)
+de JENUI/los autores. En su lugar se versiona [`fuentes/enlaces_jenui.csv`](fuentes/enlaces_jenui.csv)
 (año, fichero, título, autores, categoría y las URLs oficiales en aenui.org de
 cada PDF y ficha). Para descargarlas:
 
@@ -133,7 +133,7 @@ en `config.json`.
 
 El sistema es **incremental**: solo procesa lo nuevo, sin rehacer todo.
 
-1. **Añade las filas nuevas a [`enlaces_jenui.csv`](enlaces_jenui.csv)** (año,
+1. **Añade las filas nuevas a [`fuentes/enlaces_jenui.csv`](fuentes/enlaces_jenui.csv)** (año,
    fichero, título, autores, categoría, URL del PDF y de la ficha en
    aenui.org) y descárgalas:
    ```bash
@@ -344,7 +344,9 @@ python scripts/build_graph.py
 ```
 config.json          TODOS los ajustes (modelos, ontología, ranking, troceado)
 .env                 solo claves de API (no se versiona)
-enlaces_jenui.csv    año/fichero/título/autores + URLs oficiales (aenui.org) de cada PDF y ficha
+
+fuentes/
+└── enlaces_jenui.csv  año/fichero/título/autores + URLs oficiales (aenui.org) de cada PDF y ficha
 
 scripts/             puntos de entrada (uno por comando)
 ├── download_sources.py PDFs + fichas oficiales (aenui.org) -> pdf/ y fichas/
