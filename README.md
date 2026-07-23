@@ -51,42 +51,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Datos de entrada
-
-- `pdf/` — un PDF por artículo, nombrado `JENUI_<año>_<n>.pdf`.
-- `fichas/` — un HTML por artículo (`JENUI_<año>_<n>.html`) con metadatos limpios
-  y BibTeX. Se usan para corregir títulos/autores/acentos y para las citas.
-
-Ninguna de las dos carpetas se versiona: son las actas de JENUI, con copyright
-de JENUI/los autores. En su lugar se versiona [`fuentes/enlaces_jenui.csv`](fuentes/enlaces_jenui.csv)
-(año, fichero, título, autores, categoría y las URLs oficiales en aenui.org de
-cada PDF y ficha). Para descargarlas:
-
-```bash
-python scripts/download_sources.py            # descarga lo que falte en pdf/ y fichas/
-python scripts/download_sources.py --limit 5  # prueba con solo 5 artículos
-```
-
-Incremental, igual que el resto del pipeline: si ya tienes algún artículo
-descargado, lo salta. Es el paso 0, antes de construir nada.
-
-## Construcción del índice (primera vez)
-
-```bash
-# 1. PDFs + fichas -> data/corpus.jsonl (texto + metadatos + bibtex)   (segundos)
-python scripts/ingest.py
-
-# 2. Índice vectorial de texto completo                                (~3-4 min)
-python scripts/build_fulltext.py
-
-# 3. Grafo de conocimiento con LightRAG                                 (horas, en local)
-#    Reanudable: puedes cortar con Ctrl-C y relanzarlo; salta lo ya hecho.
-python scripts/build_graph.py
-```
-
-> **Tiempo del grafo:** con un LLM local la extracción de entidades es lenta, así que el grafo se construye sobre título+resumen+palabras clave (~254 llamadas). El texto completo (`--scope full`) es mucho más lento y rara vez compensa. La web **funciona en cuanto termina el paso 2**; el grafo solo añade la sección "Relacionado por conceptos". Para ver el progreso del paso 3 mientras corre: `python scripts/status.py --watch`.
-
 ## Uso
+
+**Si acabas de clonar el repo, no hace falta construir nada.** El índice
+vectorial y el grafo de los artículos ya existentes se versionan (`data/`,
+`rag_storage/`), así que solo con instalar dependencias ya puedes buscar:
 
 ```bash
 ./scripts/run.sh           # arranca la web (usa el entorno virtual del proyecto)
@@ -102,6 +71,10 @@ Para pararlo o recargar `config.json` (que se lee **al arrancar**, así que un c
 ```
 
 Abre <http://127.0.0.1:8000>, busca (p. ej. *"gamificación en programación"*) y obtienes la lista de artículos con resumen, palabras clave, **PDF** y **BibTeX** (botón «Copiar cita»).
+
+> El enlace **PDF** de cada resultado no funcionará hasta que descargues los
+> PDFs (`pdf/` no se versiona, ver [Datos de entrada](#datos-de-entrada)); el
+> resto —búsqueda, resumen, palabras clave, grafo y BibTeX— funciona igual sin ellos.
 
 ### Cómo leer un resultado
 
@@ -126,6 +99,51 @@ resultados para **aprendizaje basado**…"*, con un enlace para buscar tu texto
 tal cual. Usa el vocabulario de los artículos, así que **no** altera términos
 técnicos (`scrum`, `abp`, `tfg`). Se desactiva con `search.corregir_ortografia`
 en `config.json`.
+
+---
+
+## Datos de entrada
+
+Solo hace falta lo de aquí abajo si quieres los **PDFs** (para el enlace "ver
+PDF" de cada resultado) o si vas a **construir el índice desde cero** —no para
+buscar tras clonar el repo, que ya viene listo.
+
+- `pdf/` — un PDF por artículo, nombrado `JENUI_<año>_<n>.pdf`.
+- `fichas/` — un HTML por artículo (`JENUI_<año>_<n>.html`) con metadatos limpios
+  y BibTeX. Se usan para corregir títulos/autores/acentos y para las citas.
+
+Ninguna de las dos carpetas se versiona: son las actas de JENUI, con copyright
+de JENUI/los autores. En su lugar se versiona [`fuentes/enlaces_jenui.csv`](fuentes/enlaces_jenui.csv)
+(año, fichero, título, autores, categoría y las URLs oficiales en aenui.org de
+cada PDF y ficha). Para descargarlas:
+
+```bash
+python scripts/download_sources.py            # descarga lo que falte en pdf/ y fichas/
+python scripts/download_sources.py --limit 5  # prueba con solo 5 artículos
+```
+
+Incremental, igual que el resto del pipeline: si ya tienes algún artículo
+descargado, lo salta.
+
+## Construir el índice desde cero
+
+Necesario solo si partes de un corpus nuevo o distinto (o si borraste `data/`
+y `rag_storage/`): tras clonar el repo, el índice y el grafo de los artículos
+ya existentes vienen construidos y este paso no hace falta.
+
+```bash
+# 1. PDFs + fichas -> data/corpus.jsonl (texto + metadatos + bibtex)   (segundos)
+python scripts/ingest.py
+
+# 2. Índice vectorial de texto completo                                (~3-4 min)
+python scripts/build_fulltext.py
+
+# 3. Grafo de conocimiento con LightRAG                                 (horas, en local)
+#    Reanudable: puedes cortar con Ctrl-C y relanzarlo; salta lo ya hecho.
+python scripts/build_graph.py
+```
+
+> **Tiempo del grafo:** con un LLM local la extracción de entidades es lenta, así que el grafo se construye sobre título+resumen+palabras clave (~254 llamadas). El texto completo (`--scope full`) es mucho más lento y rara vez compensa. La web **funciona en cuanto termina el paso 2**; el grafo solo añade la sección "Relacionado por conceptos". Para ver el progreso del paso 3 mientras corre: `python scripts/status.py --watch`.
 
 ---
 
