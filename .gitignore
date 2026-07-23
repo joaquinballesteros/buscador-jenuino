@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Buscador JENUI: datos generados e índices (no versionar)
+data/
+rag_storage/
+pdf/
