@@ -8,6 +8,29 @@ Buscador semántico sobre los artículos de las **JENUI** (Jornadas sobre la Ens
 - **Grafo de conocimiento** (LightRAG) sobre título + resumen + palabras clave —
   para encontrar artículos **relacionados por conceptos compartidos**.
 
+### ¿Por qué dos sistemas separados?
+
+Son de naturaleza muy distinta y esa asimetría es la razón de separarlos:
+
+| | Búsqueda vectorial | Grafo de conocimiento |
+|---|---|---|
+| Motor | solo embeddings | LLM por cada fragmento |
+| Coste de construir | minutos, gratis | horas en local (o unos euros por API) |
+| Cubre | **texto completo** del artículo | título + resumen + palabras clave |
+| Responde a | ¿qué tan parecido es este texto a tu consulta? | ¿qué artículos comparten los mismos conceptos docentes? |
+
+Si fueran un solo proceso, indexar un artículo nuevo obligaría a pagar siempre
+el camino caro (llamadas a un LLM) solo para poder buscarlo. Separados, el
+artículo es **buscable en segundos** en cuanto pasa por el índice vectorial, y
+el grafo lo enriquece después —construirlo lleva horas en local— añadiendo la
+sección "🔗 Relacionado por" de cada resultado. Si el grafo aún no existe o está
+a medio construir, la búsqueda simplemente sigue funcionando solo con vectores.
+
+En cada consulta se combinan los dos: la similitud vectorial pone el grueso del
+ranking y el grafo reordena o rescata artículos que comparten conceptos con los
+mejores resultados, pero pesa poco **a propósito**, para no imponerse sobre lo
+que realmente escribiste (ver [`peso_texto` / `peso_grafo`](#search--ranking)).
+
 Por defecto corre **100% en local** con [Ollama](https://ollama.com) (sin enviar
 datos a ninguna API). Los proveedores de LLM y de embeddings son **intercambiables** (ver ["Cambiar de LLM / embeddings"](#cambiar-de-llm--embeddings-patrón-estrategia)).
 
@@ -34,35 +57,48 @@ pip install -r requirements.txt
 - `fichas/` — un HTML por artículo (`JENUI_<año>_<n>.html`) con metadatos limpios
   y BibTeX. Se usan para corregir títulos/autores/acentos y para las citas.
 
+Ninguna de las dos carpetas se versiona: son las actas de JENUI, con copyright
+de JENUI/los autores. En su lugar se versiona [`enlaces_jenui.csv`](enlaces_jenui.csv)
+(año, fichero, título, autores, categoría y las URLs oficiales en aenui.org de
+cada PDF y ficha). Para descargarlas:
+
+```bash
+python scripts/download_sources.py            # descarga lo que falte en pdf/ y fichas/
+python scripts/download_sources.py --limit 5  # prueba con solo 5 artículos
+```
+
+Incremental, igual que el resto del pipeline: si ya tienes algún artículo
+descargado, lo salta. Es el paso 0, antes de construir nada.
+
 ## Construcción del índice (primera vez)
 
 ```bash
 # 1. PDFs + fichas -> data/corpus.jsonl (texto + metadatos + bibtex)   (segundos)
-python ingest.py
+python scripts/ingest.py
 
 # 2. Índice vectorial de texto completo                                (~3-4 min)
-python build_fulltext.py
+python scripts/build_fulltext.py
 
 # 3. Grafo de conocimiento con LightRAG                                 (horas, en local)
 #    Reanudable: puedes cortar con Ctrl-C y relanzarlo; salta lo ya hecho.
-python build_graph.py
+python scripts/build_graph.py
 ```
 
-> **Tiempo del grafo:** con un LLM local la extracción de entidades es lenta, así que el grafo se construye sobre título+resumen+palabras clave (~254 llamadas). El texto completo (`--scope full`) es mucho más lento y rara vez compensa. La web **funciona en cuanto termina el paso 2**; el grafo solo añade la sección "Relacionado por conceptos".
+> **Tiempo del grafo:** con un LLM local la extracción de entidades es lenta, así que el grafo se construye sobre título+resumen+palabras clave (~254 llamadas). El texto completo (`--scope full`) es mucho más lento y rara vez compensa. La web **funciona en cuanto termina el paso 2**; el grafo solo añade la sección "Relacionado por conceptos". Para ver el progreso del paso 3 mientras corre: `python scripts/status.py --watch`.
 
 ## Uso
 
 ```bash
-./run.sh                   # arranca la web (usa el entorno virtual del proyecto)
+./scripts/run.sh           # arranca la web (usa el entorno virtual del proyecto)
 ```
 
-Equivale a `python server.py` con el entorno activado. Si lo lanzas con el Python del sistema sin activar el entorno, obtendrás un mensaje indicándote cómo hacerlo (las dependencias viven en `.venv`, no en el Python global).
+Equivale a `python scripts/server.py` con el entorno activado. Si lo lanzas con el Python del sistema sin activar el entorno, obtendrás un mensaje indicándote cómo hacerlo (las dependencias viven en `.venv`, no en el Python global).
 
 Para pararlo o recargar `config.json` (que se lee **al arrancar**, así que un cambio no surte efecto hasta reiniciar):
 
 ```bash
-./stop.sh        # para el servidor y libera el puerto 8000
-./restart.sh     # para y vuelve a arrancar -> recarga config.json
+./scripts/stop.sh        # para el servidor y libera el puerto 8000
+./scripts/restart.sh     # para y vuelve a arrancar -> recarga config.json
 ```
 
 Abre <http://127.0.0.1:8000>, busca (p. ej. *"gamificación en programación"*) y obtienes la lista de artículos con resumen, palabras clave, **PDF** y **BibTeX** (botón «Copiar cita»).
@@ -97,19 +133,22 @@ en `config.json`.
 
 El sistema es **incremental**: solo procesa lo nuevo, sin rehacer todo.
 
-1. **Copia los ficheros nuevos** respetando el nombrado `JENUI_<año>_<n>`:
+1. **Añade las filas nuevas a [`enlaces_jenui.csv`](enlaces_jenui.csv)** (año,
+   fichero, título, autores, categoría, URL del PDF y de la ficha en
+   aenui.org) y descárgalas:
    ```bash
-   cp /ruta/nuevos/*.pdf   pdf/
-   cp /ruta/nuevos/*.html  fichas/     # (si tienes las fichas; recomendado)
+   python scripts/download_sources.py
    ```
    Sirve tanto para artículos sueltos como para un **año entero** (p. ej. todos
-   los `JENUI_2026_*`).
+   los `JENUI_2026_*`). Si ya tienes los ficheros a mano (PDF/HTML), también
+   puedes copiarlos directamente a `pdf/` y `fichas/` respetando el nombrado
+   `JENUI_<año>_<n>` y saltarte este paso.
 
 2. **Reprocesa solo lo nuevo:**
    ```bash
-   python ingest.py            # añade al corpus solo los PDFs que faltan
-   python build_fulltext.py    # embebe solo los artículos nuevos y los añade
-   python build_graph.py       # LightRAG procesa solo los documentos nuevos
+   python scripts/ingest.py            # añade al corpus solo los PDFs que faltan
+   python scripts/build_fulltext.py    # embebe solo los artículos nuevos y los añade
+   python scripts/build_graph.py       # LightRAG procesa solo los documentos nuevos
    ```
    Cada paso te dirá cuántos artículos hay ya y cuántos son nuevos. Si no hay
    nada nuevo, no hace nada.
@@ -125,12 +164,12 @@ El sistema es **incremental**: solo procesa lo nuevo, sin rehacer todo.
 LLM): la cadena completa, en orden:
 
 ```bash
-python ingest.py --rebuild          # corpus (aplica el recorte de bibliografía)
-python build_fulltext.py --rebuild  # índice vectorial            (~13 min)
-rm -rf rag_storage/                 # descarta el grafo anterior
-python build_graph.py               # grafo de conocimiento       (coste del LLM)
-python merge_aliases.py             # consolida entidades         (local)
-python build_concepts.py            # índice de conceptos         (local)
+python scripts/ingest.py --rebuild          # corpus (aplica el recorte de bibliografía)
+python scripts/build_fulltext.py --rebuild  # índice vectorial            (~13 min)
+rm -rf rag_storage/                         # descarta el grafo anterior
+python scripts/build_graph.py               # grafo de conocimiento       (coste del LLM)
+python scripts/merge_aliases.py             # consolida entidades         (local)
+python scripts/build_concepts.py            # índice de conceptos         (local)
 ```
 
 > **Pendiente para la máquina nueva.** El recorte de bibliografía
@@ -153,11 +192,11 @@ JSON para la configuración estable del proyecto y las variables de entorno para
 pruebas puntuales.
 
 > **¿Por qué un solo fichero y no uno por herramienta?** Porque los valores están
-> acoplados entre etapas: el modelo de embeddings lo usan `build_fulltext`,
-> `build_graph` y `search` a la vez (si se desincronizan, el índice deja de ser
-> coherente), y los `entity_types` que produce el grafo son justo lo que filtra el
-> buscador. Un único fichero con secciones evita que esos valores compartidos
-> diverjan.
+> acoplados entre etapas: el modelo de embeddings lo usan `scripts/build_fulltext.py`,
+> `scripts/build_graph.py` y el propio buscador a la vez (si se desincronizan, el
+> índice deja de ser coherente), y los `entity_types` que produce el grafo son
+> justo lo que filtra el buscador. Un único fichero con secciones evita que esos
+> valores compartidos diverjan.
 
 ### `providers` — modelos
 
@@ -249,7 +288,7 @@ filtran por su afinidad con la consulta en **tres pasos encadenados**:
 > tiraría hasta el concepto central de una consulta corta (para "ABP" caería el
 > propio `Aprendizaje Basado en Proyectos`). El **tope** es lo que de verdad
 > protege ante consultas débiles —como un acrónimo— sin depender de un número
-> absoluto. Requiere el índice de conceptos (`build_concepts.py`); sin él, no filtra.
+> absoluto. Requiere el índice de conceptos (`scripts/build_concepts.py`); sin él, no filtra.
 
 `tipos_entidad_descartados` protege por si el LLM ignora la ontología pedida
 (pasa con modelos pequeños): al cargar el grafo se descarta todo nodo cuyo
@@ -278,14 +317,14 @@ Ejemplos:
 # LLM potente por API (Anthropic) + embeddings locales gratis
 export ANTHROPIC_API_KEY=sk-ant-...
 export JENUI_LLM_PROVIDER=anthropic          # usa claude-sonnet-5 por defecto
-python build_graph.py
+python scripts/build_graph.py
 
 # Todo OpenAI (embeddings de más calidad para la búsqueda)
 export OPENAI_API_KEY=sk-...
 export JENUI_LLM_PROVIDER=openai             # gpt-4o-mini
 export JENUI_EMBED_PROVIDER=openai           # text-embedding-3-small (dim 1536)
-python build_fulltext.py --rebuild           # re-embebe con el nuevo modelo
-python build_graph.py
+python scripts/build_fulltext.py --rebuild   # re-embebe con el nuevo modelo
+python scripts/build_graph.py
 ```
 
 > **Importante:** el modelo de **embeddings** define la dimensión de los vectores.
@@ -296,7 +335,7 @@ python build_graph.py
 > obliga a re-embeber, pero sí a rehacer el grafo si quieres reextraer entidades.
 >
 > Añadir un proveedor nuevo (p. ej. Azure, Cohere) = crear una subclase en
-> [providers.py](providers.py); no cambia nada más.
+> [jenui/providers/](jenui/providers/); no cambia nada más.
 
 ---
 
@@ -305,12 +344,20 @@ python build_graph.py
 ```
 config.json          TODOS los ajustes (modelos, ontología, ranking, troceado)
 .env                 solo claves de API (no se versiona)
+enlaces_jenui.csv    año/fichero/título/autores + URLs oficiales (aenui.org) de cada PDF y ficha
 
-ingest.py            PDFs + fichas -> data/corpus.jsonl
-build_fulltext.py    corpus -> índice vectorial
-build_graph.py       corpus -> grafo de conocimiento
-merge_aliases.py     consolida entidades equivalentes del grafo
-server.py            arranca la web
+scripts/             puntos de entrada (uno por comando)
+├── download_sources.py PDFs + fichas oficiales (aenui.org) -> pdf/ y fichas/
+├── ingest.py          PDFs + fichas -> data/corpus.jsonl
+├── build_fulltext.py  corpus -> índice vectorial
+├── build_graph.py     corpus -> grafo de conocimiento
+├── build_concepts.py  índice de vectores de concepto (filtro de relevancia)
+├── merge_aliases.py   consolida entidades equivalentes del grafo
+├── status.py          progreso del grafo, índice vectorial y corpus
+├── server.py          arranca la web
+├── run.sh             arranca server.py con el entorno virtual
+├── stop.sh            para el servidor
+└── restart.sh         para y vuelve a arrancar (recarga config.json)
 
 jenui/               el sistema (un fichero por clase pública)
 ├── config/          Settings, Paths
@@ -326,7 +373,7 @@ static/index.html    interfaz web
 docs/ARCHITECTURE.md diseño del sistema y puntos de extensión
 ```
 
-Los scripts de la raíz son puntos de entrada finos: toda la lógica vive en el
+Los scripts de `scripts/` son puntos de entrada finos: toda la lógica vive en el
 paquete `jenui`. Ver **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** para el
 diseño por capas, los invariantes del sistema y cómo extenderlo.
 
@@ -338,8 +385,8 @@ conectar artículos. El buscador une las variantes tipográficas por su cuenta;
 para las semánticas:
 
 ```bash
-python merge_aliases.py --dry-run    # revisa qué fusionaría
-python merge_aliases.py              # aplica
+python scripts/merge_aliases.py --dry-run    # revisa qué fusionaría
+python scripts/merge_aliases.py              # aplica
 ```
 
 Es local y sin LLM: solo cuesta tiempo de embeddings. Conviene ejecutarlo tras

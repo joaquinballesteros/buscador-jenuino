@@ -46,7 +46,7 @@ dependencias externas.
 
 ## 3. Los tres flujos
 
-### 3.1 Ingesta — `ingest.py`
+### 3.1 Ingesta — `scripts/ingest.py`
 
 ```
 pdf/*.pdf ──> PdfExtractor ──┐
@@ -67,7 +67,7 @@ las fichas recientes también los arrastra.
 
 El corpus es JSON Lines para poder **añadir** sin reescribir.
 
-### 3.2 Indexado — `build_fulltext.py` y `build_graph.py`
+### 3.2 Indexado — `scripts/build_fulltext.py` y `scripts/build_graph.py`
 
 Dos índices independientes, con costes muy distintos:
 
@@ -79,6 +79,17 @@ Dos índices independientes, con costes muy distintos:
 | Aporta | parecido con la consulta | conceptos compartidos entre artículos |
 
 Están separados precisamente por esa asimetría: si fueran un solo proceso, añadir un artículo exigiría pagar el camino caro solo para hacerlo buscable. Así es buscable en segundos y el grafo lo enriquece después.
+
+**Chunking con contexto.** `TextChunker` no embebe el fragmento del cuerpo tal
+cual: le antepone `Article.chunk_context` (título + palabras clave) antes de
+embeberlo, aunque lo que se **muestra** en pantalla siga siendo el fragmento
+sin prefijo (`VectorIndexBuilder._prepare` separa ambos textos). Un fragmento
+suelto del cuerpo ("los resultados muestran una mejora del 20%") no dice de
+qué artículo viene; con el prefijo, el embedding sí lo sabe. Es una mejora casi
+gratis: no añade llamadas al modelo de embeddings, solo alarga el texto de
+entrada de cada una. El resumen no entra en el prefijo — ya está entero en
+`dense_header`, que es el primer fragmento — para no gastar presupuesto de
+caracteres repitiéndolo en cada fragmento del cuerpo.
 
 ### 3.3 Búsqueda — `Searcher`
 
@@ -104,6 +115,15 @@ vector medio para contrarrestar la anisotropía). Está comprimida, así que el
 suelo absoluto es bajo (0.2) y quien de verdad protege ante consultas débiles —un
 acrónimo como "ABP"— es el **tope top-N**, que es relativo a cada consulta. La
 página `/testing` (`Searcher.explain`) muestra estas etapas con sus valores.
+
+**El peso del grafo por artículo se gradúa por relevancia.**
+`KnowledgeGraph._expand` suma, por artículo, la relevancia a la consulta de
+cada concepto conservado que posee, en vez de contar en plano los conceptos
+compartidos: así compartir un concepto muy afín pesa más que uno marginal, y
+el empuje del grafo queda continuo en vez de casi binario. Incluye a las
+propias semillas, que acumulan peso por los conceptos afines que ellas mismas
+aportan igual que cualquier otro artículo candidato — son, por construcción,
+las que más conceptos relevantes concentran.
 
 ## 4. Puntos de extensión
 
@@ -134,7 +154,7 @@ Cambiarla obliga a reconstruir el grafo.
 fragmentos (`pooling*`), semillas (`n_semillas`, `umbral_semilla`) y filtrado de
 conceptos (`umbral_concepto`, `factor_relativo`, `max_conceptos_semilla`).
 Usa la página `/testing` para ver el efecto de cada cambio etapa por etapa.
-Recuerda que `config.json` se lee al arrancar: `./restart.sh` para aplicarlo.
+Recuerda que `config.json` se lee al arrancar: `./scripts/restart.sh` para aplicarlo.
 
 ## 5. Invariantes que no conviene romper
 
@@ -142,7 +162,7 @@ Recuerda que `config.json` se lee al arrancar: `./restart.sh` para aplicarlo.
    índice. `IndexManifest` lo detecta y aborta. Cambiarlos exige `--rebuild`.
 2. **El LLM sí se puede cambiar**, pero los nombres de entidad pueden variar de
    estilo y fragmentar el grafo: LightRAG fusiona por nombre **exacto**.
-   `IndexManifest` avisa y `merge_aliases.py` lo corrige.
+   `IndexManifest` avisa y `scripts/merge_aliases.py` lo corrige.
 3. **La búsqueda nunca debe llamar al LLM.** Es lo que la mantiene instantánea
    y gratuita.
 4. **El grafo es opcional.** Si falta o está a medio construir, la búsqueda
