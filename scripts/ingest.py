@@ -2,12 +2,18 @@
 """Ingesta de PDFs y fichas -> data/corpus.jsonl
 
 Incremental: solo procesa los artículos que aún no están en el corpus.
+Ejecutar desde la raíz del proyecto:
 
-    python ingest.py              # solo lo nuevo
-    python ingest.py --rebuild    # reprocesa todo desde cero
+    python scripts/ingest.py              # solo lo nuevo
+    python scripts/ingest.py --rebuild    # reprocesa todo desde cero
 
 La lógica vive en jenui.ingestion.CorpusBuilder.
 """
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import argparse
 
 from jenui.config import Settings

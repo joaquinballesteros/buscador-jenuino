@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """Estado del sistema: progreso del grafo, índice vectorial y corpus.
 
-    python status.py             # una foto del estado
-    python status.py --watch     # se refresca cada 30 s (Ctrl-C para salir)
+    python scripts/status.py             # una foto del estado
+    python scripts/status.py --watch     # se refresca cada 30 s (Ctrl-C para salir)
 
 Lee el estado real de disco (no un log), así que funciona aunque el proceso se
 haya reiniciado y aunque lo lances desde otra terminal.
 """
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import argparse
 import json
 import subprocess
@@ -47,7 +52,7 @@ def graph_progress(settings: Settings) -> None:
     """Progreso de la construcción del grafo, con ritmo y ETA."""
     status_file = settings.paths.rag_dir / "kv_store_doc_status.json"
     if not status_file.exists():
-        print("Grafo:      sin empezar (ejecuta build_graph.py)")
+        print("Grafo:      sin empezar (ejecuta scripts/build_graph.py)")
         return
 
     docs = json.loads(status_file.read_text(encoding="utf-8"))

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Arranca la web usando SIEMPRE el entorno virtual del proyecto,
-# esté o no activado. Uso:  ./run.sh
+# esté o no activado. Uso:  ./scripts/run.sh
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 if [[ ! -x .venv/bin/python ]]; then
   echo "No existe .venv. Créalo con:"
@@ -10,4 +10,4 @@ if [[ ! -x .venv/bin/python ]]; then
   exit 1
 fi
 
-exec .venv/bin/python server.py
+exec .venv/bin/python scripts/server.py

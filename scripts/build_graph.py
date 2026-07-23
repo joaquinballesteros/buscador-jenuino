@@ -3,13 +3,19 @@
 
 Incremental y reanudable: LightRAG salta los documentos ya procesados, así que
 puedes cortar con Ctrl-C y relanzarlo, o volver a lanzarlo tras añadir artículos.
+Ejecutar desde la raíz del proyecto:
 
-    python build_graph.py                # ámbito de config.json
-    python build_graph.py --scope full   # texto completo (más lento, más rico)
-    python build_graph.py --limit 2      # prueba con 2 artículos
+    python scripts/build_graph.py                # ámbito de config.json
+    python scripts/build_graph.py --scope full   # texto completo (más lento, más rico)
+    python scripts/build_graph.py --limit 2      # prueba con 2 artículos
 
 La lógica vive en jenui.indexing.GraphBuilder.
 """
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import argparse
 import asyncio
 
@@ -22,7 +28,7 @@ async def run(limit: int | None, scope: str | None) -> None:
     settings = Settings.load()
     articles = CorpusRepository(settings.paths.corpus_file).load_all()
     if not articles:
-        raise SystemExit("El corpus está vacío. Ejecuta ingest.py primero.")
+        raise SystemExit("El corpus está vacío. Ejecuta scripts/ingest.py primero.")
     if limit:
         articles = articles[:limit]
 

@@ -3,12 +3,17 @@
 
 Mejora la separación entre conceptos afines y ajenos a una consulta, embebiendo
 cada entidad junto con su descripción y guardando el vector medio (para centrar).
-Local y sin LLM. Ejecutar tras construir el grafo:
+Local y sin LLM. Ejecutar tras construir el grafo, desde la raíz del proyecto:
 
-    python build_concepts.py
+    python scripts/build_concepts.py
 
 La lógica vive en jenui.graph.ConceptEmbeddingBuilder.
 """
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from jenui.config import Settings
 from jenui.graph.concept_embedding_builder import ConceptEmbeddingBuilder
 

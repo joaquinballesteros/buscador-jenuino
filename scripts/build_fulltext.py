@@ -2,12 +2,18 @@
 """Índice vectorial de texto completo (solo embeddings, sin LLM).
 
 Incremental: embebe únicamente los artículos que aún no están indexados.
+Ejecutar desde la raíz del proyecto:
 
-    python build_fulltext.py             # solo lo nuevo
-    python build_fulltext.py --rebuild   # reconstruye el índice entero
+    python scripts/build_fulltext.py             # solo lo nuevo
+    python scripts/build_fulltext.py --rebuild   # reconstruye el índice entero
 
 La lógica vive en jenui.indexing.VectorIndexBuilder.
 """
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import argparse
 
 from jenui.config import Settings
@@ -24,7 +30,7 @@ def main() -> None:
     settings = Settings.load()
     articles = CorpusRepository(settings.paths.corpus_file).load_all()
     if not articles:
-        raise SystemExit("El corpus está vacío. Ejecuta ingest.py primero.")
+        raise SystemExit("El corpus está vacío. Ejecuta scripts/ingest.py primero.")
 
     report = VectorIndexBuilder(settings).build(articles, rebuild=args.rebuild)
     if not report.new_articles:

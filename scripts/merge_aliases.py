@@ -8,14 +8,20 @@ acaba partido y deja de conectar artículos:
     'ABP'                   'Aprendizaje basado en proyectos'
 
 Genera data/entity_aliases.json, que el buscador aplica al cargar el grafo.
-Local y sin LLM: solo cuesta tiempo de embeddings.
+Local y sin LLM: solo cuesta tiempo de embeddings. Ejecutar desde la raíz del
+proyecto:
 
-    python merge_aliases.py                 # umbral de config.json
-    python merge_aliases.py --dry-run       # muestra qué fusionaría, sin escribir
-    python merge_aliases.py --umbral 0.95   # más estricto
+    python scripts/merge_aliases.py                 # umbral de config.json
+    python scripts/merge_aliases.py --dry-run       # muestra qué fusionaría, sin escribir
+    python scripts/merge_aliases.py --umbral 0.95   # más estricto
 
 La lógica vive en jenui.graph.SemanticAliasBuilder.
 """
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import argparse
 
 from jenui.config import Settings

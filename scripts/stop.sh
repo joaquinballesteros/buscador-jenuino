@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Para el servidor del Buscador JENUINO (el que arranca run.sh).
-# Uso:  ./stop.sh
+# Uso:  ./scripts/stop.sh
 set -uo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 PORT="${1:-8000}"
 killed=0
