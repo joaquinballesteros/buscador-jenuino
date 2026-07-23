@@ -9,6 +9,7 @@ nano-vectordb>=0.0.4.3
 networkx>=3.2
 tiktoken>=0.7
 python-multipart>=0.0.9
+certifi>=2024.2.2
 # Proveedores API opcionales (solo si cambias de 'ollama' a estos en config)
 openai>=1.30
 anthropic>=0.39

@@ -17,19 +17,29 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import argparse
 import csv
+import ssl
 import time
 import urllib.error
 import urllib.request
+
+import certifi
 
 ROOT = Path(__file__).resolve().parent.parent
 CSV_FILE = ROOT / "fuentes" / "enlaces_jenui.csv"
 USER_AGENT = "buscador-jenui/1.0 (+https://aenui.org)"
 
+# El Python del sistema en macOS no siempre trae un almacén de certificados
+# CA usable (da CERTIFICATE_VERIFY_FAILED con cualquier HTTPS). certifi trae
+# su propio bundle, así que funciona sin depender de cómo esté configurado
+# el Python de cada máquina.
+_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+
 
 def download(url: str, dest: Path) -> bool:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(request, timeout=30) as response, dest.open("wb") as f:
+        with urllib.request.urlopen(request, timeout=30, context=_SSL_CONTEXT) as response, \
+                dest.open("wb") as f:
             f.write(response.read())
         return True
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
