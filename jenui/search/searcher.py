@@ -207,7 +207,7 @@ class Searcher:
             graph_stage["seed_entities_kept"] = sum(1 for x in entities if x["kept"])
             graph_stage["seed_entities"] = entities[:limit_text * 3]
             graph_stage["related"] = sorted(
-                ({**self._brief(a), "peso": graph_weights[a],
+                ({**self._brief(a), "peso": round(graph_weights[a], 4),
                   "conceptos": sorted(shared_concepts.get(a, set()))[:8]}
                  for a in graph_weights),
                 key=lambda x: -x["peso"],
@@ -227,7 +227,7 @@ class Searcher:
             gnorm = graph_weights.get(aid, 0.0) / max_boost
             rank_stage.append({**self._brief(aid), "rank": pos,
                                "text_score": round(ts, 4),
-                               "graph_raw": graph_weights.get(aid, 0.0),
+                               "graph_raw": round(graph_weights.get(aid, 0.0), 4),
                                "graph_norm": round(gnorm, 4),
                                "final": round(final, 4)})
 

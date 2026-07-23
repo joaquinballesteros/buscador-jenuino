@@ -111,9 +111,11 @@ class KnowledgeGraph:
                          ) -> tuple[dict[str, float], dict[str, set[str]]]:
         """Artículos conectados a las semillas por conceptos compartidos.
 
-        Devuelve ``(peso, conceptos)`` por artículo. Se excluyen:
+        Devuelve ``(peso, conceptos)`` por artículo. Incluye a las propias
+        semillas: reciben peso por los conceptos afines que ellas mismas
+        aportan, igual que cualquier otro artículo (ver :meth:`_expand`). Se
+        excluyen:
 
-        * las propias semillas — un artículo no se relaciona consigo mismo;
         * las entidades presentes en más de ``max_articles_per_entity``
           artículos, por demasiado genéricas para informar de nada;
         * si se pasa ``query_vector``, las entidades poco afines a la consulta.
@@ -122,13 +124,12 @@ class KnowledgeGraph:
         conceptos ajenos al tema buscado: para "retroalimentación formativa" no
         se expande por "Andragogía" solo porque una semilla la mencione.
         """
-        seeds = set(seed_ids)
         seed_entities = self._seed_entities(seed_ids)
-        _, _, kept = self._relevance_report(
+        relevance, _, kept = self._relevance_report(
             seed_entities, query_vector, relevance_threshold, relevance_factor,
             max_concepts,
         )
-        return self._expand(kept, seeds, max_articles_per_entity)
+        return self._expand(kept, relevance, max_articles_per_entity)
 
     def explain_related(self, seed_ids: list[str], max_articles_per_entity: int,
                         query_vector, relevance_threshold: float | None,
@@ -136,13 +137,12 @@ class KnowledgeGraph:
         """Como ``related_articles`` pero devolviendo también los pasos
         intermedios (para la página de testing): entidades semilla con su
         relevancia, el corte aplicado y qué se conservó."""
-        seeds = set(seed_ids)
         seed_entities = self._seed_entities(seed_ids)
         scores, cutoff, kept = self._relevance_report(
             seed_entities, query_vector, relevance_threshold, relevance_factor,
             max_concepts,
         )
-        weights, concepts = self._expand(kept, seeds, max_articles_per_entity)
+        weights, concepts = self._expand(kept, scores, max_articles_per_entity)
         return {
             "seed_entities": scores,          # {entidad: relevancia}  (None si sin vector)
             "cutoff": cutoff,
@@ -157,19 +157,35 @@ class KnowledgeGraph:
             entities |= self.entities_of(article_id)
         return entities
 
-    def _expand(self, entities: set[str], seeds: set[str], max_per_entity: int
-                ) -> tuple[dict[str, float], dict[str, set[str]]]:
-        """Cuenta artículos que comparten las entidades dadas (fuera de las semillas)."""
+    def _expand(self, entities: set[str], relevance: dict[str, float | None],
+                max_per_entity: int) -> tuple[dict[str, float], dict[str, set[str]]]:
+        """Suma, por artículo, la relevancia de las entidades que posee.
+
+        Antes se sumaba ``+1`` por entidad compartida, sin distinguir un
+        concepto muy afín a la consulta de uno marginal: con pocos conceptos
+        por artículo (lo normal en este corpus) eso empataba casi todo en el
+        mismo peso máximo tras normalizar. Pesar por relevancia da un empuje
+        continuo en vez de casi binario.
+
+        Incluye a las semillas: como sus propias entidades entran en
+        ``entities``, acumulan peso por los conceptos afines que ellas aportan,
+        igual que cualquier otro artículo — antes quedaban siempre a 0 por
+        exclusión expresa, penalizando estructuralmente al artículo que suele
+        ser el más central del tema (ver ``related_articles``).
+
+        Sin índice de conceptos (``relevance`` a ``None``), cae a contar
+        entidades compartidas (``+1``), el comportamiento previo.
+        """
         weights: dict[str, float] = {}
         concepts: dict[str, set[str]] = {}
         for entity in entities:
             articles = self.articles_of(entity)
             if len(articles) > max_per_entity:
                 continue
+            weight = relevance.get(entity)
+            weight = 1.0 if weight is None else weight
             for article_id in articles:
-                if article_id in seeds:
-                    continue
-                weights[article_id] = weights.get(article_id, 0.0) + 1.0
+                weights[article_id] = weights.get(article_id, 0.0) + weight
                 concepts.setdefault(article_id, set()).add(entity)
         return weights, concepts
 

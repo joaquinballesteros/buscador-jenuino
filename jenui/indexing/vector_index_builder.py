@@ -96,13 +96,13 @@ class VectorIndexBuilder:
         meta: list[dict] = []
         texts: list[str] = []
         for article in articles:
-            for position, chunk in enumerate(self._chunker.split_article(article)):
+            for position, (display, embed) in enumerate(self._chunker.split_article(article)):
                 meta.append({
                     "article_id": article.id,
                     "chunk_index": position,
-                    "text": chunk[:400],     # solo para mostrar contexto
+                    "text": display[:400],     # solo para mostrar contexto
                 })
-                texts.append(chunk)
+                texts.append(embed)
         return meta, texts
 
     def _embed_all(self, texts: list[str], verbose: bool) -> np.ndarray:

@@ -38,6 +38,20 @@ class Article:
         """
         return " ".join(p for p in (self.title, self.keywords, self.abstract) if p)
 
+    @property
+    def chunk_context(self) -> str:
+        """Prefijo de contexto para embeber fragmentos del cuerpo.
+
+        Un fragmento suelto del cuerpo (p. ej. "los resultados muestran una
+        mejora del 20%") no dice de qué artículo viene ni de qué trata; con
+        este prefijo delante, el embedding sí lo sabe. Solo título + palabras
+        clave: el resumen ya está entero en :attr:`dense_header`, repetirlo en
+        cada fragmento solo gastaría presupuesto de caracteres sin añadir
+        información nueva.
+        """
+        parts = [p for p in (self.title, self.keywords) if p]
+        return f"{'. '.join(parts)}. " if parts else ""
+
     # ------------------------------------------------------------ persistencia
     def to_dict(self) -> dict:
         data = asdict(self)

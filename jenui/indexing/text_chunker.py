@@ -28,12 +28,21 @@ class TextChunker:
         step = self._size - self._overlap
         return [text[i:i + self._size] for i in range(0, len(text), step)]
 
-    def split_article(self, article: Article) -> list[str]:
-        """Fragmentos de un artículo.
+    def split_article(self, article: Article) -> list[tuple[str, str]]:
+        """Fragmentos de un artículo: pares ``(texto, texto_a_embeber)``.
 
         El primero es la cabecera densa (título + palabras clave + resumen), que
         suele ser el fragmento que mejor representa el artículo entero.
+
+        Los fragmentos del cuerpo llevan además un prefijo de contexto
+        (:attr:`Article.chunk_context`) solo en el texto que se embebe: un
+        fragmento suelto del cuerpo mejora mucho su embedding si sabe de qué
+        artículo viene, pero lo que se **muestra** en pantalla debe ser el
+        fragmento tal cual, sin el prefijo repetido delante.
         """
         header = article.dense_header
-        chunks = [header] if header.strip() else []
-        return chunks + self.split(article.text)
+        chunks: list[tuple[str, str]] = [(header, header)] if header.strip() else []
+        prefix = article.chunk_context
+        for raw in self.split(article.text):
+            chunks.append((raw, f"{prefix}{raw}" if prefix else raw))
+        return chunks
