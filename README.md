@@ -389,11 +389,13 @@ jenui/               el sistema (un fichero por clase pública)
 
 static/index.html    interfaz web
 docs/ARCHITECTURE.md diseño del sistema y puntos de extensión
+docs/DEPLOY.md       desplegar en un servidor propio
 ```
 
 Los scripts de `scripts/` son puntos de entrada finos: toda la lógica vive en el
 paquete `jenui`. Ver **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** para el
-diseño por capas, los invariantes del sistema y cómo extenderlo.
+diseño por capas, los invariantes del sistema y cómo extenderlo, y
+**[docs/DEPLOY.md](docs/DEPLOY.md)** para desplegarlo en un servidor propio.
 
 ## Consolidar entidades equivalentes
 
