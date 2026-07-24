@@ -33,7 +33,8 @@ class SearchResult:
             "score": round(float(self.score), 4),
             "text_score": round(float(self.text_score), 4),
             "shared_concepts": self.shared_concepts,
-            "pdf": f"/pdf/{a.filename or a.id + '.pdf'}",
+            # enlace directo a aenui.org: no depende de tener pdf/ descargado
+            "pdf": f"https://aenui.org/actas/pdf/{a.filename or a.id + '.pdf'}",
             "cite_key": a.cite_key,
             "bibtex": a.bibtex,
         }

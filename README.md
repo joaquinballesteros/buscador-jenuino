@@ -70,11 +70,7 @@ Para pararlo o recargar `config.json` (que se lee **al arrancar**, así que un c
 ./scripts/restart.sh     # para y vuelve a arrancar -> recarga config.json
 ```
 
-Abre <http://127.0.0.1:8000>, busca (p. ej. *"gamificación en programación"*) y obtienes la lista de artículos con resumen, palabras clave, **PDF** y **BibTeX** (botón «Copiar cita»).
-
-> El enlace **PDF** de cada resultado no funcionará hasta que descargues los
-> PDFs (`pdf/` no se versiona, ver [Datos de entrada](#datos-de-entrada)); el
-> resto —búsqueda, resumen, palabras clave, grafo y BibTeX— funciona igual sin ellos.
+Abre <http://127.0.0.1:8000>, busca (p. ej. *"gamificación en programación"*) y obtienes la lista de artículos con resumen, palabras clave, **PDF** y **BibTeX** (botón «Copiar cita»). El enlace **PDF** apunta directo a aenui.org: no hace falta tener nada descargado para verlo.
 
 ### Cómo leer un resultado
 
@@ -104,9 +100,11 @@ en `config.json`.
 
 ## Datos de entrada
 
-Solo hace falta lo de aquí abajo si quieres los **PDFs** (para el enlace "ver
-PDF" de cada resultado) o si vas a **construir el índice desde cero** —no para
-buscar tras clonar el repo, que ya viene listo.
+El enlace **PDF** de cada resultado apunta directo a aenui.org, así que no
+hace falta descargar nada para buscar ni para leer los artículos. Solo hace
+falta lo de aquí abajo si vas a **construir el índice desde cero** (`ingest.py`
+necesita los ficheros locales para extraer texto y metadatos) o quieres una
+copia local de los PDFs.
 
 - `pdf/` — un PDF por artículo, nombrado `JENUI_<año>_<n>.pdf`.
 - `fichas/` — un HTML por artículo (`JENUI_<año>_<n>.html`) con metadatos limpios
@@ -420,7 +418,8 @@ construir el grafo, y de nuevo si añades artículos con **otro** modelo.
   ranker). La consume la página de testing.
 - `GET /api/status` → estado del índice (nº artículos, full-text, grafo, embeddings).
 - `POST /api/reload` → recarga corpus, vectores y grafo sin reiniciar.
-- `GET /pdf/<fichero>` → sirve el PDF original.
+- `GET /pdf/<fichero>` → sirve el PDF si tienes una copia local en `pdf/` (los
+  resultados de búsqueda enlazan directo a aenui.org, no a esta ruta).
 
 ## Página de testing
 
