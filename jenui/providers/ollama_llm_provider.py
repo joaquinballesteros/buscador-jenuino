@@ -34,5 +34,6 @@ class OllamaLLMProvider(LLMProvider):
                 "host": self._host,
                 "options": {"num_ctx": self._num_ctx},
                 "timeout": 600,
+                "think": False,
             },
         }
