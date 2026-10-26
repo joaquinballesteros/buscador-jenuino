@@ -249,3 +249,16 @@ rag_storage/*
 # (índice vectorial propio de LightRAG, no lo usa este proyecto) y
 # kv_store_llm_response_cache.json (caché de coste, no de estado) — entre
 # los cuatro suman ~950 MB y dos superan el límite de 100 MB de GitHub
+
+# Grafo del análisis temporal (scripts/topic_evolution.py): mismas reglas que
+# rag_storage, más su propio mapa de alias.
+rag_storage_meta/*
+!rag_storage_meta/graph_chunk_entity_relation.graphml
+!rag_storage_meta/kv_store_text_chunks.json
+!rag_storage_meta/kv_store_doc_status.json
+!rag_storage_meta/kv_store_full_docs.json
+!rag_storage_meta/kv_store_full_entities.json
+!rag_storage_meta/kv_store_full_relations.json
+!rag_storage_meta/kv_store_entity_chunks.json
+!rag_storage_meta/kv_store_relation_chunks.json
+!rag_storage_meta/entity_aliases.json

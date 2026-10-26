@@ -226,3 +226,66 @@ GraphML, y recarga solo lo que cambió. Consecuencias prácticas:
 | `search/spell_corrector.py` | `SpellCorrector` | corrige erratas con vocabulario del corpus |
 | `search/searcher.py` | `Searcher` | orquesta la búsqueda (y `explain` para /testing) |
 | `web/app.py` | `create_app` | API HTTP e interfaz |
+| `analysis/concept_source.py` | `ConceptCorpusBuilder` | conceptos por artículo (grafo y/o keywords) |
+| `analysis/topic_detector.py` | `TopicDetector` | topics = comunidades de coocurrencia |
+| `analysis/topic_evolution.py` | `TopicEvolution` | series, clases y conceptos emergentes |
+| `analysis/topic_flow.py` | `TopicFlowBuilder` | topics por ventanas y sus enlaces |
+| `analysis/citation_links.py` | `CitationNetwork` | validación por citas internas |
+| `analysis/topic_analysis.py` | `TopicAnalysis` | orquesta el análisis |
+| `analysis/report_writer.py` | `ReportWriter` | CSV, JSON e informe HTML |
+
+## 9. Análisis temporal de topics
+
+`jenui/analysis/` es un consumidor más del grafo, **independiente del
+buscador**: nada en `search/` ni en `web/` lo importa. Respeta los invariantes:
+no llama al LLM (solo lee el GraphML) y degrada a palabras clave si no hay grafo.
+
+```
+corpus.jsonl ─┐
+GraphML ──────┼─> ConceptCorpusBuilder ─> TopicDetector ─> TopicEvolution ─┐
+alias ────────┘   (ruido, hubs)            (Louvain)        (series, clase)  ├─> ReportWriter
+                                          TopicFlowBuilder ─────────────────┤   (CSV, JSON, HTML)
+referencias_jenui.csv ─> CitationNetwork ───────────────────────────────────┘
+```
+
+**Grafo propio.** Se construye en otro almacén (`Paths.with_rag_dir`, opción
+`--rag-dir` de los scripts) con `scope meta` y sin autores ni año
+(`GraphBuilder.build(metadata=False)`). Cada almacén tiene su propio
+`entity_aliases.json`, así que fusionar alias en uno no pisa el otro.
+
+**Conceptos** (`ConceptCorpusBuilder`). Une entidades del grafo y palabras
+clave por la clave de `AliasResolver`. `NoiseFilter` descarta por nombre lo
+que `EntityTypeFilter` no puede descartar por tipo. Los conceptos en más de
+`max_fraccion_concepto` de los artículos (*hubs*) conservan su serie pero no
+entran en la detección de comunidades, donde conectarían todo con todo.
+
+**Topics** (`TopicDetector`). Coocurrencia con peso de Salton y Louvain con
+semilla fija (reproducible). Un artículo pertenece a un topic si tiene al
+menos `min_conceptos_articulo` de sus conceptos.
+
+**Clasificación** (`TopicEvolution.classify`). Sobre la prevalencia
+suavizada, con umbrales relativos al pico de cada topic:
+
+| Clase | Criterio (claves de `analysis.clasificacion`) |
+|---|---|
+| emergente reciente | emerge hace menos de `anios_consolidacion` años |
+| emergente consolidado | emerge, y desde entonces está en ≥ `cobertura_minima` de los años con nivel reciente ≥ `nivel_consolidado` del pico |
+| pasajero | nivel reciente < `nivel_apagado` tras ≤ `duracion_max_pasajero` años activo |
+| recurrente | ≥ `anios_min_recurrente` años con cobertura ≥ `cobertura_minima`, no apagado |
+| en declive | apagado tras una vida larga |
+| intermitente / esporádico | el resto / menos de `min_articulos_topic` artículos |
+
+*Emerger* = el inicio (primer año con prevalencia ≥ `umbral_inicio` del pico)
+llega al menos `anios_previos` años después del comienzo de los datos y antes
+apenas había nada (< 10 % del pico). Lo presente desde el primer año no puede
+ser emergente. La tendencia (creciente/estable/decreciente) es la pendiente
+desde la primera aparición, como cambio por década relativo a la media (±30 %).
+
+**Flujo** (`TopicFlowBuilder`). Topics por ventanas de `flujo.ventana` años,
+alineadas con el último año; enlaces entre ventanas consecutivas con Jaccard ≥
+`umbral_jaccard` medido **sobre el vocabulario común** a ambas ventanas (un
+concepto que aún no existía no indica ruptura).
+
+**Citas** (`CitationNetwork`). Por topic: citas internas, artículos más
+citados y fracción de los posteriores a los tres primeros años que citan a
+alguno de esos pioneros. Solo cuentan los artículos con referencias extraídas.

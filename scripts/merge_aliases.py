@@ -14,6 +14,7 @@ proyecto:
     python scripts/merge_aliases.py                 # umbral de config.json
     python scripts/merge_aliases.py --dry-run       # muestra qué fusionaría, sin escribir
     python scripts/merge_aliases.py --umbral 0.95   # más estricto
+    python scripts/merge_aliases.py --rag-dir rag_storage_meta   # grafo del análisis
 
 La lógica vive en jenui.graph.SemanticAliasBuilder.
 """
@@ -24,24 +25,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import argparse
 
-from jenui.config import Settings
+from jenui.config import Paths, Settings
 from jenui.graph import SemanticAliasBuilder
 
 
 def main() -> None:
-    settings = Settings.load()
-    builder = SemanticAliasBuilder(settings)
-
     parser = argparse.ArgumentParser(
         description="Fusión semántica de entidades equivalentes del grafo."
     )
-    parser.add_argument("--umbral", type=float, default=builder.default_threshold,
-                        help="similitud coseno mínima para fusionar")
+    parser.add_argument("--umbral", type=float, default=None,
+                        help="similitud coseno mínima para fusionar "
+                             "(por defecto, config.json -> search.umbral_alias)")
+    parser.add_argument("--rag-dir", default=None,
+                        help="almacén de LightRAG alternativo; el mapa se guarda dentro de él")
     parser.add_argument("--dry-run", action="store_true",
                         help="solo mostrar, no guardar")
     parser.add_argument("--batch", type=int, default=32)
     args = parser.parse_args()
 
+    settings = Settings.load(Paths.default().with_rag_dir(args.rag_dir))
+    builder = SemanticAliasBuilder(settings)
     report = builder.build(threshold=args.umbral, batch_size=args.batch)
 
     print(f"\nGrupos finales: {report.groups_final}  |  "

@@ -197,6 +197,105 @@ python scripts/build_concepts.py            # índice de conceptos         (loca
 
 ---
 
+## Extraer las referencias bibliográficas
+
+Saca la bibliografía de cada PDF de `pdf/` a [`fuentes/referencias_jenui.csv`](fuentes/referencias_jenui.csv),
+una fila por referencia. Es independiente del buscador (no toca el índice) y
+tarda segundos:
+
+```bash
+python scripts/extract_references.py              # todos los PDFs descargados
+python scripts/extract_references.py --anio 2026  # solo un año
+```
+
+Columnas: `anio`, `archivo` y `titulo_articulo` (el artículo que cita), `n`,
+`referencia` (texto de la referencia), `anio_referencia` (último año que
+aparece en ella), `cita_jenui` (si/no: la referencia es de unas JENUI),
+`jenui_citado` (id del artículo JENUI citado, cuando su título aparece en la
+referencia) y `metodo`:
+
+- `numerada` — la bibliografía usa `[1]`, `[2]`…; el corte es fiable.
+- `bloques` — sin numerar (sobre todo actas antiguas escaneadas con OCR): se
+  corta por párrafos y es **aproximado**; alguna referencia puede salir unida
+  a la siguiente o partida, y el texto arrastra los errores del OCR.
+
+---
+
+## Análisis temporal de topics
+
+Además de buscar, el grafo sirve para ver **cómo evolucionan los temas del
+congreso**: qué topics emergen en cada año (y si luego se consolidan), cuáles
+son recurrentes durante décadas y cuáles fueron pasajeros. No toca el buscador
+ni llama al LLM al analizar: lee un grafo ya construido.
+
+### Ejecutarlo
+
+Con los PDFs y fichas de todos los años en `pdf/` y `fichas/`:
+
+```bash
+./scripts/topic_pipeline.sh                  # ingesta + grafo + alias + análisis
+./scripts/topic_pipeline.sh --referencias    # además, regenera las referencias (validación por citas)
+./scripts/topic_pipeline.sh --solo-analisis  # solo el análisis (segundos), p. ej. tras cambiar config
+```
+
+Equivale a:
+
+```bash
+python scripts/ingest.py                                                           # corpus (incremental)
+python scripts/build_graph.py --scope meta --sin-metadatos --rag-dir rag_storage_meta  # grafo del análisis (reanudable)
+python scripts/merge_aliases.py --rag-dir rag_storage_meta                         # fusión semántica (local)
+python scripts/topic_evolution.py                                                  # análisis
+```
+
+Progreso del grafo mientras se construye: `python scripts/status.py --watch --rag-dir rag_storage_meta`.
+
+**¿Por qué un grafo aparte?** El del buscador se construye con texto completo
+(`scope: full`), que mete mucho ruido en una serie temporal ("Figura 2",
+"Tabla I", nombres de cursos) y depende de la calidad del texto de cada PDF:
+los antiguos están escaneados, así que se compararían épocas con calidades
+distintas. Para el análisis se usa solo título + resumen + palabras clave
+(`--scope meta`, una llamada al LLM por artículo, ~1.900 en total) y **sin
+autores ni año** (`--sin-metadatos`): si el año va en el texto, el LLM lo
+extrae como entidad ("JENUI 2024") y sale emergente por construcción.
+
+Sin grafo, el análisis también funciona solo con las palabras clave de los
+autores: `python scripts/topic_evolution.py --fuente keywords`.
+
+### Qué produce (`data/analysis/`)
+
+| Fichero | Contenido |
+|---|---|
+| `informe_topics.html` | informe interactivo: mapa de calor topic × año, detalle por topic, comparador de conceptos, emergentes por año, flujo entre periodos (Sankey) |
+| `topics.csv` | un topic por fila: clase, tendencia, año de inicio y pico, cobertura, citas |
+| `topics_por_anio.csv` | serie de cada topic (artículos y prevalencia, bruta y suavizada) |
+| `emergentes_por_anio.csv` | conceptos por año de primera aparición y qué pasó después |
+| `conceptos_por_anio.csv` | artículos por concepto y año (para análisis propios) |
+| `evolucion.json` | todo lo anterior, para pandas/R |
+
+### Cómo se calcula
+
+1. **Conceptos por artículo**: entidades del grafo y/o palabras clave,
+   consolidadas por nombre y alias, sin metadatos ni ruido (figuras, tablas,
+   conceptos con año, términos genéricos).
+2. **Topics**: comunidades (Louvain) del grafo de coocurrencia de conceptos.
+3. **Prevalencia**: fracción de los artículos del año que tratan el topic,
+   suavizada con media móvil de 3 años.
+4. **Clase**, según la forma de la serie y siempre relativa al pico del propio
+   topic: *emergente reciente*, *emergente consolidado*, *pasajero*,
+   *recurrente*, *en declive*, *intermitente* o *esporádico*.
+5. **Flujo**: topics por ventanas de 5 años enlazados entre ventanas, para ver
+   nacimientos, fusiones y divisiones.
+6. **Citas** (si existe `fuentes/referencias_jenui.csv`): qué fracción de los
+   artículos posteriores cita a los pioneros de cada topic. Es una prueba de
+   consolidación que no depende de la frecuencia.
+
+Los umbrales están en `config.json` → `analysis`; el detalle, en
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#9-análisis-temporal-de-topics).
+Opciones útiles de `topic_evolution.py`: `--resolucion 1.5` (topics más finos),
+`--desde 1997 --hasta 2026`, `--min-articulos 6`.
+
+---
+
 ## Configuración: `config.json`
 
 **Todos los ajustes están en [config.json](config.json)**, en la raíz. No hace
@@ -371,6 +470,8 @@ scripts/             puntos de entrada (uno por comando)
 ├── build_graph.py     corpus -> grafo de conocimiento
 ├── build_concepts.py  índice de vectores de concepto (filtro de relevancia)
 ├── merge_aliases.py   consolida entidades equivalentes del grafo
+├── topic_evolution.py análisis temporal de topics -> data/analysis/
+├── topic_pipeline.sh  ingesta + grafo del análisis + análisis, de una vez
 ├── status.py          progreso del grafo, índice vectorial y corpus
 ├── server.py          arranca la web
 ├── run.sh             arranca server.py con el entorno virtual
@@ -385,6 +486,7 @@ jenui/               el sistema (un fichero por clase pública)
 ├── indexing/        corpus -> índice vectorial y grafo
 ├── graph/           lectura y consolidación del grafo
 ├── search/          Searcher, Ranker
+├── analysis/        evolución temporal de topics (no lo usa el buscador)
 └── web/             API HTTP e interfaz
 
 static/index.html    interfaz web

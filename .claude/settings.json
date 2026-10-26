@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find jenui/search jenui/indexing -name \"*.py\" | xargs wc -l | tail -1 && echo --- && sed -n '1,200p' jenui/search/*.py 2>/dev/null | head -250)"
+    ],
+    "additionalDirectories": [
+      "/Users/joaquin/Documents/Investigacion/BuscadorJenui/buscador-jenuino/jenui/search"
+    ]
+  }
+}

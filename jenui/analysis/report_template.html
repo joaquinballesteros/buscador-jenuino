@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evolución de topics JENUI</title>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --chip: #f0efec;
+  --chip-on: #0b0b0b;
+  --chip-on-text: #fcfcfb;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --chip: #2c2c2a;
+    --chip-on: #f0efec;
+    --chip-on-text: #1a1a19;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --text: #f0efec;
+  --text-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255,255,255,0.10);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --chip: #2c2c2a;
+  --chip-on: #f0efec;
+  --chip-on-text: #1a1a19;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 28px; line-height: 1.2; margin: 0 0 6px; }
+h2 { font-size: 19px; margin: 0 0 4px; }
+p.lede, .hint { color: var(--text-2); margin: 0 0 16px; }
+.hint { font-size: 13px; }
+section {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px; margin: 20px 0;
+}
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.tile { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--surface); }
+.tile .n { font-size: 26px; font-weight: 600; }
+.tile .k { color: var(--text-2); font-size: 13px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.controls label { color: var(--text-2); font-size: 13px; }
+.chip {
+  border: 1px solid var(--border); background: var(--chip); color: var(--text);
+  border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer;
+}
+.chip[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-text); }
+select, input[type="text"] {
+  font: inherit; font-size: 14px; color: var(--text); background: var(--surface);
+  border: 1px solid var(--axis); border-radius: 8px; padding: 6px 10px; max-width: 100%;
+}
+button.plain {
+  font: inherit; font-size: 14px; border: 1px solid var(--axis); background: var(--chip);
+  color: var(--text); border-radius: 8px; padding: 6px 12px; cursor: pointer;
+}
+.chart { width: 100%; min-height: 120px; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.badge { font-size: 12px; border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; color: var(--text-2); }
+.badge b { color: var(--text); font-weight: 600; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 12px; }
+.cols h3 { font-size: 14px; margin: 0 0 6px; }
+ol.arts { margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-2); }
+ol.arts li { margin-bottom: 4px; }
+ol.arts .y { color: var(--muted); font-variant-numeric: tabular-nums; }
+.concepts { font-size: 13px; color: var(--text-2); }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--text-2); font-weight: 600; cursor: pointer; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.pioneers { color: var(--text-2); max-width: 420px; }
+.notice { color: var(--text-2); font-size: 13px; padding: 12px; border: 1px dashed var(--axis); border-radius: 8px; }
+details summary { cursor: pointer; font-weight: 600; }
+code, pre { font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+pre { background: var(--page); padding: 12px; border-radius: 8px; overflow-x: auto; }
+dl.method dt { font-weight: 600; margin-top: 10px; }
+dl.method dd { margin: 2px 0 0 0; color: var(--text-2); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Evolución de los topics de JENUI</h1>
+  <p class="lede" id="lede"></p>
+
+  <section aria-labelledby="h-resumen">
+    <h2 id="h-resumen">Topics por clase</h2>
+    <p class="hint">Cada topic es un grupo de conceptos que suelen aparecer juntos en los artículos. La clase se decide por la forma de su serie temporal (ver metodología, al final).</p>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <section aria-labelledby="h-mapa">
+    <h2 id="h-mapa">Mapa de calor: topic × año</h2>
+    <p class="hint">Filas agrupadas por clase y ordenadas por año de inicio. Pulsa una fila para ver su detalle.</p>
+    <div class="controls" id="class-filter" role="group" aria-label="Filtrar por clase"></div>
+    <div class="controls" role="group" aria-label="Valor mostrado">
+      <label>Valor:</label>
+      <button class="chip" data-value="rel" aria-pressed="true">Relativo al pico del topic</button>
+      <button class="chip" data-value="smooth" aria-pressed="false">% de artículos (suavizado)</button>
+      <button class="chip" data-value="share" aria-pressed="false">% de artículos (anual)</button>
+    </div>
+    <div class="chart" id="heatmap"></div>
+  </section>
+
+  <section aria-labelledby="h-detalle">
+    <h2 id="h-detalle">Detalle de un topic</h2>
+    <div class="controls"><label for="topic-select">Topic:</label><select id="topic-select"></select></div>
+    <div class="badges" id="topic-badges"></div>
+    <div class="chart" id="topic-chart"></div>
+    <p class="concepts" id="topic-concepts"></p>
+    <div class="cols" id="topic-lists"></div>
+  </section>
+
+  <section aria-labelledby="h-concepto">
+    <h2 id="h-concepto">Comparar conceptos</h2>
+    <p class="hint">Serie de un concepto suelto (entidad del grafo o palabra clave), en % de los artículos de cada año. Hasta tres a la vez.</p>
+    <div class="controls">
+      <input type="text" id="concept-input" list="concept-list" placeholder="p. ej. Moodle" aria-label="Concepto">
+      <datalist id="concept-list"></datalist>
+      <button class="plain" id="concept-add">Añadir</button>
+      <span id="concept-chips" class="controls" style="margin:0"></span>
+    </div>
+    <div class="chart" id="concept-chart"></div>
+  </section>
+
+  <section aria-labelledby="h-emergentes">
+    <h2 id="h-emergentes">Conceptos emergentes por año</h2>
+    <p class="hint">Conceptos agrupados por el año en que aparecen por primera vez (los 8 con más recorrido posterior de cada año; elige un año para verlos todos), y qué pasó después. <b>Consolidado</b>: presente en al menos la mitad de los años siguientes (y en tres o más). Se omiten los primeros años del periodo, donde no se distingue lo nuevo de lo que ya había.</p>
+    <div class="controls" id="emerging-state" role="group" aria-label="Estado"></div>
+    <div class="controls"><label for="emerging-year">Año:</label><select id="emerging-year"></select></div>
+    <div class="table-wrap" id="emerging-table"></div>
+  </section>
+
+  <section aria-labelledby="h-flujo">
+    <h2 id="h-flujo">Flujo de topics entre periodos</h2>
+    <p class="hint">Topics detectados por separado en cada ventana de años y enlazados si comparten conceptos. Un nodo sin entrada <b>nace</b> en su periodo; varias entradas son una <b>fusión</b>; varias salidas, una <b>división</b>. El grosor del enlace es el número de conceptos compartidos.</p>
+    <div class="chart" id="sankey"></div>
+    <div class="table-wrap" id="births"></div>
+  </section>
+
+  <section aria-labelledby="h-tabla">
+    <h2 id="h-tabla">Todos los topics</h2>
+    <p class="hint">Pulsa una cabecera para ordenar. Los mismos datos están en <code>topics.csv</code>.</p>
+    <div class="table-wrap" id="topic-table"></div>
+  </section>
+
+  <section aria-labelledby="h-metodo">
+    <h2 id="h-metodo">Metodología y parámetros</h2>
+    <dl class="method">
+      <dt>Conceptos</dt>
+      <dd>Entidades del grafo de conocimiento (LightRAG) y/o palabras clave de los autores, consolidadas por nombre normalizado y alias semánticos. Se descartan metadatos (autores, instituciones), referencias a figuras y tablas, conceptos con año ("Curso 2023/2024") y una lista de términos genéricos.</dd>
+      <dt>Topics</dt>
+      <dd>Comunidades de Louvain sobre el grafo de coocurrencia de conceptos (peso de Salton: c<sub>ij</sub>/√(df<sub>i</sub>·df<sub>j</sub>)). Un artículo pertenece a un topic si contiene al menos <span id="p-shared"></span> de sus conceptos. Los conceptos presentes en demasiados artículos (hubs) no participan en la detección.</dd>
+      <dt>Prevalencia</dt>
+      <dd>Fracción de los artículos del año que pertenecen al topic, suavizada con media móvil centrada de <span id="p-window"></span> años. Todos los umbrales son relativos al pico de cada topic.</dd>
+      <dt>Clases</dt>
+      <dd><b>Emergente reciente</b>: emerge hace menos de <span id="p-cons"></span> años. <b>Emergente consolidado</b>: emerge (no estaba en los primeros años y antes apenas existía) y desde entonces está presente en la mayoría de años y sigue vivo. <b>Pasajero</b>: se apagó tras una vida activa corta. <b>Recurrente</b>: presente en la mayoría de los años durante un periodo largo. <b>En declive</b>: se apagó tras una vida larga. <b>Intermitente</b>: el resto. <b>Esporádico</b>: muy pocos artículos.</dd>
+      <dt>Citas</dt>
+      <dd>Si existe <code>fuentes/referencias_jenui.csv</code>, para cada topic se mide qué fracción de los artículos posteriores a sus tres primeros años cita a alguno de esos pioneros: una prueba de consolidación independiente de la frecuencia.</dd>
+    </dl>
+    <details style="margin-top:14px"><summary>Excluidos por demasiado frecuentes (hubs)</summary><p class="concepts" id="hubs"></p></details>
+    <details style="margin-top:10px"><summary>Parámetros de esta ejecución</summary><pre id="params"></pre></details>
+  </section>
+</main>
+
+<script id="datos" type="application/json">__DATOS__</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("datos").textContent);
+const META = D.meta, TOPICS = D.topics, YEARS = META.anios;
+const CLASS_ORDER = META.clases;
+const HAS_PLOTLY = typeof window.Plotly !== "undefined";
+const byId = Object.fromEntries(TOPICS.map(t => [t.id, t]));
+
+const state = {
+  classes: new Set(CLASS_ORDER.filter(c => c !== "esporádico")),
+  value: "rel",
+  topic: (TOPICS.find(t => t.clase === "emergente consolidado") || TOPICS[0] || {}).id,
+  concepts: [],
+  emergingState: "consolidado",
+  emergingYear: "",
+};
+
+// ---------------------------------------------------------------- utilidades
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct = (v, d = 1) => (100 * v).toFixed(d).replace(".", ",") + "\u00a0%";
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const short = (s, n) => s.length > n ? s.slice(0, n - 1) + "…" : s;
+const isDark = () => matchMedia("(prefers-color-scheme: dark)").matches
+  && document.documentElement.dataset.theme !== "light"
+  || document.documentElement.dataset.theme === "dark";
+
+function baseLayout(extra = {}) {
+  return Object.assign({
+    paper_bgcolor: css("--surface"), plot_bgcolor: css("--surface"),
+    font: { family: "system-ui, -apple-system, Segoe UI, sans-serif", size: 12, color: css("--text-2") },
+    margin: { l: 48, r: 16, t: 8, b: 36 },
+    hoverlabel: { bgcolor: css("--surface"), bordercolor: css("--axis"), font: { color: css("--text") } },
+    xaxis: { gridcolor: css("--grid"), linecolor: css("--axis"), tickcolor: css("--axis"), zeroline: false, dtick: YEARS.length > 15 ? 2 : 1 },
+    yaxis: { gridcolor: css("--grid"), linecolor: css("--axis"), zeroline: false, rangemode: "tozero" },
+    legend: { orientation: "h", y: 1.12, x: 0, font: { color: css("--text-2") } },
+  }, extra);
+}
+const PLOT_CONFIG = { displayModeBar: false, responsive: true };
+function noPlotly(el) {
+  el.innerHTML = '<div class="notice">Las gráficas necesitan conexión a internet (cargan Plotly desde jsDelivr). Las tablas y los CSV de <code>data/analysis/</code> funcionan sin ella.</div>';
+}
+function articleList(items, extra) {
+  if (!items || !items.length) return '<p class="hint">—</p>';
+  return '<ol class="arts">' + items.map(a =>
+    `<li><span class="y">${esc(a.anio)}</span> ${esc(a.titulo || a.id)}${extra ? extra(a) : ""}</li>`).join("") + "</ol>";
+}
+
+// ------------------------------------------------------------------ cabecera
+function renderHeader() {
+  const total = META.articulos_por_anio.reduce((a, b) => a + b, 0);
+  document.getElementById("lede").textContent =
+    `${total} artículos · ${YEARS[0]}–${YEARS[YEARS.length - 1]} · ${TOPICS.length} topics · ` +
+    `conceptos de: ${META.fuente}${META.fuente !== "keywords" ? " (" + META.grafo_dir + ")" : ""} · generado ${META.generado}`;
+  const counts = {};
+  TOPICS.forEach(t => counts[t.clase] = (counts[t.clase] || 0) + 1);
+  document.getElementById("tiles").innerHTML = CLASS_ORDER.map(c =>
+    `<div class="tile"><div class="n">${counts[c] || 0}</div><div class="k">${esc(c)}</div></div>`).join("");
+  const p = META.parametros;
+  document.getElementById("p-shared").textContent = p.min_conceptos_articulo;
+  document.getElementById("p-window").textContent = p.ventana_suavizado;
+  document.getElementById("p-cons").textContent = p.clasificacion.anios_consolidacion;
+  document.getElementById("params").textContent = JSON.stringify(p, null, 2);
+  document.getElementById("hubs").textContent = META.hubs.length
+    ? META.hubs.map(h => `${h.concepto} (${h.articulos})`).join(", ") : "Ninguno.";
+}
+
+// ------------------------------------------------------------- mapa de calor
+function renderClassFilter() {
+  const counts = {};
+  TOPICS.forEach(t => counts[t.clase] = (counts[t.clase] || 0) + 1);
+  const box = document.getElementById("class-filter");
+  box.innerHTML = '<label>Clases:</label>' + CLASS_ORDER.filter(c => counts[c]).map(c =>
+    `<button class="chip" data-class="${esc(c)}" aria-pressed="${state.classes.has(c)}">${esc(c)} (${counts[c]})</button>`).join("");
+  box.querySelectorAll("button").forEach(b => b.onclick = () => {
+    const c = b.dataset.class;
+    state.classes.has(c) ? state.classes.delete(c) : state.classes.add(c);
+    b.setAttribute("aria-pressed", state.classes.has(c));
+    renderHeatmap();
+  });
+  document.querySelectorAll("[data-value]").forEach(b => b.onclick = () => {
+    state.value = b.dataset.value;
+    document.querySelectorAll("[data-value]").forEach(x => x.setAttribute("aria-pressed", x === b));
+    renderHeatmap();
+  });
+}
+
+function heatRows() {
+  return TOPICS.filter(t => state.classes.has(t.clase)).sort((a, b) =>
+    CLASS_ORDER.indexOf(a.clase) - CLASS_ORDER.indexOf(b.clase)
+    || (a.anio_inicio ?? 9999) - (b.anio_inicio ?? 9999)
+    || b.n_articulos - a.n_articulos);
+}
+
+function renderHeatmap() {
+  const el = document.getElementById("heatmap");
+  if (!HAS_PLOTLY) return noPlotly(el);
+  const rows = heatRows().reverse();          // Plotly dibuja la primera fila abajo
+  if (!rows.length) { el.innerHTML = '<div class="notice">Ninguna clase seleccionada.</div>'; return; }
+  const narrow = el.clientWidth < 640;
+  const labels = rows.map(t => `${t.id} ${short(t.label, narrow ? 28 : 60)}`);
+  const z = rows.map(t => {
+    const s = t.serie;
+    if (state.value === "rel") return s.smooth.map(v => t.pico ? 100 * v / t.pico : 0);
+    return (state.value === "smooth" ? s.smooth : s.share).map(v => 100 * v);
+  });
+  const custom = rows.map(t => t.serie.counts.map((c, i) =>
+    [esc(t.label), c, pct(t.serie.share[i]), pct(t.serie.smooth[i]), t.clase]));
+  const scale = isDark()
+    ? [[0, "#1f2329"], [0.15, "#104281"], [0.35, "#1c5cab"], [0.55, "#3987e5"], [0.8, "#86b6ef"], [1, "#cde2fb"]]
+    : [[0, "#f3f7fc"], [0.15, "#cde2fb"], [0.35, "#86b6ef"], [0.55, "#3987e5"], [0.8, "#1c5cab"], [1, "#0d366b"]];
+  const title = { rel: "% del pico", smooth: "% artículos", share: "% artículos" }[state.value];
+  Plotly.react(el, [{
+    type: "heatmap", x: YEARS, y: labels, z, customdata: custom, colorscale: scale,
+    xgap: 2, ygap: 2, zauto: false, zmin: 0, zmax: Math.max(1e-9, ...z.flat()),
+    colorbar: { title: { text: title, side: "right", font: { color: css("--text-2") } }, thickness: 10, outlinewidth: 0, tickfont: { color: css("--text-2") } },
+    hovertemplate: "<b>%{customdata[0]}</b><br>%{x} · %{customdata[1]} artículos<br>anual %{customdata[2]} · suavizado %{customdata[3]}<br>%{customdata[4]}<extra></extra>",
+  }], baseLayout({
+    height: Math.max(220, 20 * rows.length + 70),
+    margin: { l: 10, r: 10, t: 8, b: 36 },
+    yaxis: { automargin: true, tickfont: { size: 11, color: css("--text-2") }, gridcolor: "rgba(0,0,0,0)" },
+    xaxis: { side: "bottom", dtick: YEARS.length > 15 ? 2 : 1, tickcolor: css("--axis"), gridcolor: "rgba(0,0,0,0)" },
+  }), PLOT_CONFIG);
+  el.removeAllListeners && el.removeAllListeners("plotly_click");
+  el.on("plotly_click", ev => {
+    const id = ev.points[0].y.split(" ")[0];
+    selectTopic(id, true);
+  });
+}
+
+// ----------------------------------------------------------- detalle topic
+function renderTopicSelect() {
+  const sel = document.getElementById("topic-select");
+  sel.innerHTML = TOPICS.map(t =>
+    `<option value="${esc(t.id)}">${esc(t.id)} · ${esc(short(t.label, 80))} (${esc(t.clase)})</option>`).join("");
+  sel.value = state.topic;
+  sel.onchange = () => selectTopic(sel.value, false);
+}
+
+function selectTopic(id, scroll) {
+  if (!byId[id]) return;
+  state.topic = id;
+  document.getElementById("topic-select").value = id;
+  renderTopic();
+  if (scroll) document.getElementById("h-detalle").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderTopic() {
+  const t = byId[state.topic];
+  if (!t) return;
+  const badge = (k, v) => v === null || v === undefined ? "" : `<span class="badge">${k} <b>${esc(v)}</b></span>`;
+  document.getElementById("topic-badges").innerHTML = [
+    badge("clase", t.clase), badge("tendencia", t.tendencia), badge("artículos", t.n_articulos),
+    badge("primera aparición", t.anio_primero), badge("inicio", t.anio_inicio), badge("pico", t.anio_pico ? `${t.anio_pico} (${pct(t.pico)})` : null),
+    badge("nivel reciente", t.anio_pico ? pct(t.nivel_reciente, 0) + " del pico" : null),
+    badge("cobertura desde inicio", t.anio_inicio ? pct(t.cobertura, 0) : null),
+    t.largo_recorrido ? badge("recorrido", "largo") : "",
+  ].join("");
+  document.getElementById("topic-concepts").innerHTML =
+    `<b>Conceptos</b> (${t.n_conceptos}, de más a menos central): ${esc(t.conceptos.join(" · "))}`;
+
+  const lists = [
+    `<div><h3>Primeros artículos (inicio + 2 años)</h3>${articleList(t.pioneros)}</div>`,
+    `<div><h3>Artículos más centrales</h3>${articleList(t.articulos_centrales)}</div>`,
+  ];
+  if (t.citas) {
+    const c = t.citas;
+    const frac = c.fraccion_citan_pioneros === null ? "sin datos de referencias para los artículos posteriores"
+      : `${c.posteriores_que_citan_pioneros} de ${c.posteriores_con_referencias} artículos posteriores (${pct(c.fraccion_citan_pioneros, 0)}) citan a algún pionero`;
+    lists.push(`<div><h3>Citas dentro del topic</h3><p class="hint">${c.citas_internas} citas internas · ${esc(frac)}.</p>` +
+      articleList(c.mas_citados, a => ` <span class="y">(${a.citas} citas)</span>`) + "</div>");
+  }
+  document.getElementById("topic-lists").innerHTML = lists.join("");
+
+  const el = document.getElementById("topic-chart");
+  if (!HAS_PLOTLY) return noPlotly(el);
+  const s = t.serie;
+  Plotly.react(el, [
+    { type: "scatter", mode: "markers", name: "Anual", x: YEARS, y: s.share.map(v => 100 * v),
+      customdata: s.counts, marker: { size: 8, color: css("--muted"), line: { width: 2, color: css("--surface") } },
+      hovertemplate: "anual %{y:.1f} % (%{customdata} art.)<extra></extra>" },
+    { type: "scatter", mode: "lines", name: `Suavizado (media móvil ${META.parametros.ventana_suavizado} años)`,
+      x: YEARS, y: s.smooth.map(v => 100 * v), line: { width: 2, color: css("--series-1"), shape: "spline", smoothing: 0.4 },
+      hovertemplate: "suavizado %{y:.1f} %<extra></extra>" },
+  ], baseLayout({
+    height: 300, hovermode: "x unified",
+    yaxis: { title: { text: "% de artículos del año" }, gridcolor: css("--grid"), zeroline: false, rangemode: "tozero", ticksuffix: " %" },
+    shapes: t.anio_inicio ? [{ type: "line", x0: t.anio_inicio, x1: t.anio_inicio, yref: "paper", y0: 0, y1: 1,
+      line: { color: css("--axis"), width: 1, dash: "dot" } }] : [],
+    annotations: t.anio_inicio ? [{ x: t.anio_inicio, yref: "paper", y: 1, text: "inicio", showarrow: false,
+      xanchor: "left", font: { size: 11, color: css("--muted") } }] : [],
+  }), PLOT_CONFIG);
+}
+
+// ---------------------------------------------------------------- conceptos
+const CONCEPTS = Object.fromEntries(D.conceptos.map(c => [c.concepto.toLowerCase(), c]));
+function renderConceptControls() {
+  document.getElementById("concept-list").innerHTML =
+    D.conceptos.slice(0, 4000).map(c => `<option value="${esc(c.concepto)}">`).join("");
+  const input = document.getElementById("concept-input");
+  const add = () => {
+    const c = CONCEPTS[input.value.trim().toLowerCase()];
+    if (!c || state.concepts.includes(c) ) return;
+    if (state.concepts.length >= 3) state.concepts.shift();
+    state.concepts.push(c);
+    input.value = "";
+    renderConcepts();
+  };
+  document.getElementById("concept-add").onclick = add;
+  input.onkeydown = e => { if (e.key === "Enter") add(); };
+  // arranque: los dos conceptos más frecuentes de la clase más interesante
+  const seed = byId[state.topic];
+  (seed ? seed.conceptos.slice(0, 2) : []).forEach(n => {
+    const c = CONCEPTS[n.toLowerCase()]; if (c) state.concepts.push(c);
+  });
+}
+
+function renderConcepts() {
+  const colors = ["--series-1", "--series-2", "--series-3"];
+  const chips = document.getElementById("concept-chips");
+  chips.innerHTML = state.concepts.map((c, i) =>
+    `<button class="chip" data-i="${i}" title="Quitar" aria-pressed="false"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(${colors[i]});margin-right:6px"></span>${esc(c.concepto)} ×</button>`).join("");
+  chips.querySelectorAll("button").forEach(b => b.onclick = () => {
+    state.concepts.splice(+b.dataset.i, 1); renderConcepts();
+  });
+  const el = document.getElementById("concept-chart");
+  if (!HAS_PLOTLY) return noPlotly(el);
+  if (!state.concepts.length) { Plotly.purge(el); el.innerHTML = '<div class="notice">Escribe un concepto y pulsa «Añadir».</div>'; return; }
+  el.innerHTML = "";
+  Plotly.react(el, state.concepts.map((c, i) => ({
+    type: "scatter", mode: "lines+markers", name: `${c.concepto} (${c.articulos})`, x: YEARS,
+    y: c.conteos.map((n, j) => META.articulos_por_anio[j] ? 100 * n / META.articulos_por_anio[j] : 0),
+    customdata: c.conteos,
+    line: { width: 2, color: css(colors[i]) }, marker: { size: 8, color: css(colors[i]), line: { width: 2, color: css("--surface") } },
+    hovertemplate: `${esc(c.concepto)}: %{y:.1f} % (%{customdata} art.)<extra></extra>`,
+  })), baseLayout({
+    height: 300, hovermode: "x unified", showlegend: true,
+    yaxis: { title: { text: "% de artículos del año" }, gridcolor: css("--grid"), zeroline: false, rangemode: "tozero", ticksuffix: " %" },
+  }), PLOT_CONFIG);
+}
+
+// ---------------------------------------------------------------- emergentes
+function renderEmergingControls() {
+  const states = ["consolidado", "intermitente", "puntual", "reciente", "todos"];
+  const counts = {};
+  D.emergentes.forEach(e => counts[e.estado] = (counts[e.estado] || 0) + 1);
+  const box = document.getElementById("emerging-state");
+  box.innerHTML = '<label>Estado:</label>' + states.map(s =>
+    `<button class="chip" data-state="${s}" aria-pressed="${s === state.emergingState}">${s} (${s === "todos" ? D.emergentes.length : counts[s] || 0})</button>`).join("");
+  box.querySelectorAll("button").forEach(b => b.onclick = () => {
+    state.emergingState = b.dataset.state;
+    box.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    renderEmerging();
+  });
+  const years = [...new Set(D.emergentes.map(e => e.anio))].sort();
+  const sel = document.getElementById("emerging-year");
+  sel.innerHTML = '<option value="">Todos</option>' + years.map(y => `<option>${y}</option>`).join("");
+  sel.onchange = () => { state.emergingYear = sel.value; renderEmerging(); };
+}
+
+function renderEmerging() {
+  const PER_YEAR = 8;
+  const rows = D.emergentes.filter(e =>
+    (state.emergingState === "todos" || e.estado === state.emergingState)
+    && (!state.emergingYear || String(e.anio) === state.emergingYear));
+  if (!rows.length) {
+    document.getElementById("emerging-table").innerHTML = '<p class="hint">Ningún concepto con este filtro.</p>';
+    return;
+  }
+  const groups = new Map();
+  rows.forEach(e => { if (!groups.has(e.anio)) groups.set(e.anio, []); groups.get(e.anio).push(e); });
+  const limit = state.emergingYear ? Infinity : PER_YEAR;
+  let html = `<table><thead><tr><th class="num">Año</th><th>Concepto</th><th>Estado</th><th class="num">Artículos</th>` +
+    `<th class="num">Después</th><th class="num">Años presente después</th><th>Artículos pioneros</th></tr></thead><tbody>`;
+  for (const [year, items] of groups) {
+    html += items.slice(0, limit).map(e => `<tr><td class="num">${e.anio}</td><td>${esc(e.label)}</td><td>${esc(e.estado)}</td>` +
+      `<td class="num">${e.articulos}</td><td class="num">${e.articulos_despues}</td>` +
+      `<td class="num">${e.anios_presente_despues} / ${e.anios_despues}</td>` +
+      `<td class="pioneers">${e.pioneros.slice(0, 2).map(p => esc(short(p.titulo || p.id, 90))).join("<br>")}</td></tr>`).join("");
+    if (items.length > limit) {
+      html += `<tr><td></td><td colspan="6" class="hint"><a href="#" data-year="${year}">+${items.length - limit} más en ${year}</a></td></tr>`;
+    }
+  }
+  html += "</tbody></table>";
+  const box = document.getElementById("emerging-table");
+  box.innerHTML = html;
+  box.querySelectorAll("a[data-year]").forEach(a => a.onclick = ev => {
+    ev.preventDefault();
+    state.emergingYear = a.dataset.year;
+    document.getElementById("emerging-year").value = a.dataset.year;
+    renderEmerging();
+  });
+}
+
+// ---------------------------------------------------------------------- flujo
+function renderSankey() {
+  const F = D.flujo, el = document.getElementById("sankey");
+  if (F.ventanas.length < 2 || !F.nodos.length) {
+    el.innerHTML = '<div class="notice">Hace falta más de una ventana de años para ver el flujo (el periodo analizado es demasiado corto para la ventana configurada).</div>';
+  } else if (!HAS_PLOTLY) {
+    noPlotly(el);
+  } else {
+    const index = Object.fromEntries(F.nodos.map((n, i) => [n.id, i]));
+    const col = Object.fromEntries(F.ventanas.map((w, i) => [w, i]));
+    const nw = F.ventanas.length;
+    const narrow = el.clientWidth < 640;
+    Plotly.react(el, [{
+      type: "sankey", arrangement: "snap",
+      node: {
+        label: F.nodos.map(n => short(n.label.split(" · ").slice(0, 2).join(" · "), narrow ? 18 : 34)),
+        x: F.nodos.map(n => 0.02 + 0.96 * col[n.window] / (nw - 1)),
+        customdata: F.nodos.map(n => [n.window, n.n_articles, n.events.join(", ") || "—", n.topic_global || "—", esc(n.label)]),
+        hovertemplate: "<b>%{customdata[4]}</b><br>%{customdata[0]} · %{customdata[1]} artículos<br>eventos: %{customdata[2]}<br>topic global: %{customdata[3]}<extra></extra>",
+        pad: 8, thickness: 12, color: css("--series-1"), line: { color: css("--surface"), width: 1 },
+      },
+      link: {
+        source: F.enlaces.map(l => index[l.source]), target: F.enlaces.map(l => index[l.target]),
+        value: F.enlaces.map(l => l.shared),
+        customdata: F.enlaces.map(l => [l.shared, l.jaccard.toFixed(2)]),
+        hovertemplate: "%{customdata[0]} conceptos compartidos · Jaccard %{customdata[1]}<extra></extra>",
+        color: isDark() ? "rgba(195,194,183,0.18)" : "rgba(82,81,78,0.16)",
+      },
+      textfont: { size: 11, color: css("--text") },
+    }], baseLayout({
+      height: Math.max(420, 15 * Math.max(...F.ventanas.map(w => F.nodos.filter(n => n.window === w).length)) + 120),
+      margin: { l: 8, r: 8, t: 28, b: 8 },
+      annotations: F.ventanas.map((w, i) => ({ x: 0.02 + 0.96 * i / (nw - 1), y: 1.04, xref: "paper", yref: "paper",
+        text: w, showarrow: false, font: { size: 12, color: css("--text-2") }, xanchor: i === 0 ? "left" : i === nw - 1 ? "right" : "center" })),
+    }), PLOT_CONFIG);
+  }
+  const births = F.nodos.filter(n => n.events.includes("nace"));
+  document.getElementById("births").innerHTML = births.length
+    ? "<h3 style='font-size:14px;margin:16px 0 6px'>Topics que nacen en cada periodo</h3><table><thead><tr><th>Periodo</th><th>Topic</th><th class='num'>Artículos</th><th>Eventos</th></tr></thead><tbody>" +
+      births.map(n => `<tr><td>${esc(n.window)}</td><td>${esc(n.label)}</td><td class="num">${n.n_articles}</td><td>${esc(n.events.join(", "))}</td></tr>`).join("") + "</tbody></table>"
+    : "";
+}
+
+// ---------------------------------------------------------------- tabla final
+const TABLE_COLS = [
+  ["id", "Id"], ["label", "Topic"], ["clase", "Clase"], ["tendencia", "Tendencia"],
+  ["n_articulos", "Artículos", true], ["anio_inicio", "Inicio", true], ["anio_pico", "Pico", true],
+  ["pico", "Pico %", true, v => pct(v)], ["nivel_reciente", "Nivel reciente", true, v => pct(v, 0)],
+  ["cobertura", "Cobertura", true, v => pct(v, 0)],
+  ["citas", "Citan a pioneros", true, v => v && v.fraccion_citan_pioneros !== null ? pct(v.fraccion_citan_pioneros, 0) : "—"],
+];
+let tableSort = { key: "n_articulos", dir: -1 };
+function renderTable() {
+  const value = (t, k) => k === "citas" ? (t.citas && t.citas.fraccion_citan_pioneros !== null ? t.citas.fraccion_citan_pioneros : -1) : t[k];
+  const rows = [...TOPICS].sort((a, b) => {
+    const x = value(a, tableSort.key), y = value(b, tableSort.key);
+    return (x === y ? 0 : (x ?? -1) > (y ?? -1) ? 1 : -1) * tableSort.dir;
+  });
+  let html = "<table><thead><tr>" + TABLE_COLS.map(([k, n, num]) =>
+    `<th data-k="${k}" class="${num ? "num" : ""}">${n}${tableSort.key === k ? (tableSort.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("") + "</tr></thead><tbody>";
+  html += rows.map(t => "<tr>" + TABLE_COLS.map(([k, , num, fmt]) =>
+    `<td class="${num ? "num" : ""}">${k === "label" ? `<a href="#h-detalle" data-topic="${esc(t.id)}">${esc(t.label)}</a>` : esc(fmt ? fmt(t[k]) : t[k] ?? "—")}</td>`).join("") + "</tr>").join("");
+  html += "</tbody></table>";
+  const box = document.getElementById("topic-table");
+  box.innerHTML = html;
+  box.querySelectorAll("th").forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    tableSort = { key: k, dir: tableSort.key === k ? -tableSort.dir : -1 };
+    renderTable();
+  });
+  box.querySelectorAll("a[data-topic]").forEach(a => a.onclick = e => { e.preventDefault(); selectTopic(a.dataset.topic, true); });
+}
+
+// -------------------------------------------------------------------- arranque
+function renderCharts() { renderHeatmap(); renderTopic(); renderConcepts(); renderSankey(); }
+renderHeader();
+renderClassFilter();
+renderTopicSelect();
+renderConceptControls();
+renderEmergingControls();
+renderEmerging();
+renderTable();
+renderCharts();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
+let resizeTimer;
+addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { renderHeatmap(); renderSankey(); }, 200); });
+</script>
+</body>
+</html>

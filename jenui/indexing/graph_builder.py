@@ -69,15 +69,19 @@ class GraphBuilder:
     def default_scope(self) -> str:
         return self._config.get("scope", "meta")
 
-    def build_document(self, article: Article, scope: str) -> str:
+    def build_document(self, article: Article, scope: str,
+                       metadata: bool = True) -> str:
         """Texto que se entrega al extractor para un artículo.
 
-        La cabecera con metadatos ayuda al modelo a situar el contenido.
+        La cabecera con metadatos ayuda al modelo a situar el contenido. Con
+        ``metadata=False`` se omiten autores y año: es lo que conviene para el
+        análisis temporal, porque el año escrito en el texto acaba extraído
+        como entidad ("JENUI 2024") y contamina las series por año.
         """
         lines = [f"# {article.title or article.id}"]
-        if article.authors:
+        if metadata and article.authors:
             lines.append(f"Autores: {article.authors}")
-        if article.year:
+        if metadata and article.year:
             lines.append(f"Año: {article.year} (JENUI)")
         if article.keywords:
             lines.append(f"Palabras clave: {article.keywords}")
@@ -118,7 +122,7 @@ class GraphBuilder:
         return rag
 
     async def build(self, articles: list[Article], scope: str | None = None,
-                    verbose: bool = True) -> GraphReport:
+                    verbose: bool = True, metadata: bool = True) -> GraphReport:
         scope = scope or self.default_scope
         if verbose:
             print(f"Artículos en corpus: {len(articles)}  |  ámbito: {scope}")
@@ -130,7 +134,7 @@ class GraphBuilder:
         rag = await self.create_rag()
         started = time.time()
         await rag.ainsert(
-            [self.build_document(a, scope) for a in articles],
+            [self.build_document(a, scope, metadata) for a in articles],
             ids=[a.id for a in articles],
             file_paths=[a.filename for a in articles],
         )

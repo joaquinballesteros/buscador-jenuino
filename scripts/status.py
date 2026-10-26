@@ -3,6 +3,7 @@
 
     python scripts/status.py             # una foto del estado
     python scripts/status.py --watch     # se refresca cada 30 s (Ctrl-C para salir)
+    python scripts/status.py --watch --rag-dir rag_storage_meta   # grafo del análisis
 
 Lee el estado real de disco (no un log), así que funciona aunque el proceso se
 haya reiniciado y aunque lo lances desde otra terminal.
@@ -18,7 +19,7 @@ import subprocess
 import time
 from datetime import datetime, timezone
 
-from jenui.config import Settings
+from jenui.config import Paths, Settings
 from jenui.graph import KnowledgeGraph
 from jenui.indexing import VectorIndex
 from jenui.ingestion import CorpusRepository
@@ -141,9 +142,11 @@ def main() -> None:
     parser.add_argument("--watch", action="store_true",
                         help="refresca cada 30 s")
     parser.add_argument("--interval", type=int, default=30)
+    parser.add_argument("--rag-dir", default=None,
+                        help="almacén de LightRAG alternativo (p. ej. rag_storage_meta)")
     args = parser.parse_args()
 
-    settings = Settings.load()
+    settings = Settings.load(Paths.default().with_rag_dir(args.rag_dir))
     if not args.watch:
         show(settings)
         return

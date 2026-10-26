@@ -100,5 +100,64 @@
       "articulo",
       "content"
     ]
+  },
+  "analysis": {
+    "_comentario": "Análisis temporal de topics (scripts/topic_evolution.py). No afecta al buscador. Lee un grafo aparte, construido con: python scripts/build_graph.py --scope meta --sin-metadatos --rag-dir rag_storage_meta",
+    "grafo_dir": "rag_storage_meta",
+    "_comentario_fuente": "De dónde salen los conceptos de cada artículo: 'grafo' (entidades de LightRAG), 'keywords' (palabras clave de los autores; no necesita grafo) o 'ambos'.",
+    "fuente": "ambos",
+    "usar_alias_semanticos": true,
+    "_comentario_filtros": "min_articulos_anio descarta años casi vacíos (p. ej. 1995, solo el tríptico). min_articulos_concepto: frecuencia mínima para que un concepto cuente. max_fraccion_concepto: los conceptos presentes en más de esta fracción de artículos son hubs que conectan todo y fundirían los topics; no participan en la detección de comunidades, pero conservan su serie por concepto. El informe los lista para revisarlos.",
+    "min_articulos_anio": 10,
+    "min_articulos_concepto": 4,
+    "max_fraccion_concepto": 0.15,
+    "_comentario_topics": "Topics = comunidades (Louvain) del grafo de coocurrencia de conceptos, con peso de Salton. Más 'resolucion' da topics más pequeños y numerosos. Un artículo pertenece a un topic si tiene al menos 'min_conceptos_articulo' de sus conceptos.",
+    "min_coocurrencias": 2,
+    "resolucion": 1.0,
+    "semilla": 42,
+    "min_conceptos_topic": 3,
+    "min_conceptos_articulo": 2,
+    "ventana_suavizado": 3,
+    "_comentario_clasificacion": "Umbrales sobre la prevalencia suavizada (fracción de artículos del año), relativos al pico de cada topic. Ver docs/ARCHITECTURE.md, sección de análisis temporal.",
+    "clasificacion": {
+      "min_articulos_topic": 5,
+      "umbral_inicio": 0.2,
+      "anios_previos": 3,
+      "anios_consolidacion": 4,
+      "cobertura_minima": 0.7,
+      "nivel_consolidado": 0.4,
+      "nivel_apagado": 0.25,
+      "duracion_max_pasajero": 6,
+      "anios_min_recurrente": 10
+    },
+    "_comentario_flujo": "Evolución estructural: se detectan topics por ventanas de 'ventana' años y se enlazan entre ventanas consecutivas si comparten conceptos (Jaccard >= umbral_jaccard).",
+    "flujo": {
+      "ventana": 5,
+      "min_articulos_concepto": 3,
+      "umbral_jaccard": 0.1,
+      "min_articulos_comunidad": 5
+    },
+    "_comentario_ruido": "Conceptos que no son temas: se comparan ya normalizados (minúsculas, sin acentos ni puntuación). Los patrones son expresiones regulares; el de años evita además que un concepto con fecha ('Curso 2023/2024') salga como emergente por construcción.",
+    "conceptos_genericos": [
+      "universidad", "universidades", "profesor", "profesores", "profesorado",
+      "alumno", "alumnos", "alumnado", "estudiante", "estudiantes",
+      "informatica", "ingenieria informatica", "grado en ingenieria informatica",
+      "grado en ingenieria en informatica", "asignatura", "asignaturas",
+      "docencia", "ensenanza", "aprendizaje", "educacion", "curso", "cursos",
+      "experiencia docente", "experiencias docentes", "resultados"
+    ],
+    "patrones_ruido": [
+      "^(fig|figura|figure|tabla|table|cuadro|grafico|anexo|apendice|ecuacion|listado|seccion|capitulo)\\b",
+      "\\b(19|20)\\d{2}\\b",
+      "\\bjenui\\b",
+      "\\b(actas|proceedings|revista|journal|congreso|conference|jornadas|simposio|symposium|transactions)\\b",
+      "^ieee access$",
+      "\\baenui\\b",
+      "^curso\\b",
+      "^universi(dad|dades|tat|ty|dade)\\b",
+      "^(grado|doble grado|master|titulacion) en\\b",
+      "^rq ?\\d",
+      "^(pregunta|cuestion|item|ejercicio|grupo|actividad|practica|tarea|tema|sesion|semana|caso|nivel|fase|paso|hipotesis|objetivo) \\d+\\b"
+    ]
   }
 }
