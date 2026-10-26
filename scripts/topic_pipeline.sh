@@ -1,28 +1,26 @@
 #!/usr/bin/env bash
-# Análisis temporal de topics de principio a fin, usando el entorno virtual
-# del proyecto. Todos los pasos son incrementales o reanudables: si se corta
-# (o falla la API), basta con volver a lanzarlo.
+# Análisis temporal de topics, usando el entorno virtual del proyecto.
+# Por defecto analiza el grafo ya construido del buscador (rag_storage): no
+# llama al LLM y tarda segundos.
 #
-#   ./scripts/topic_pipeline.sh                 # ingesta + grafo + alias + análisis
-#   ./scripts/topic_pipeline.sh --descargar     # además, descarga los PDFs y fichas que falten
-#   ./scripts/topic_pipeline.sh --referencias   # además, regenera fuentes/referencias_jenui.csv
-#   ./scripts/topic_pipeline.sh --solo-analisis # solo el último paso (segundos)
+#   ./scripts/topic_pipeline.sh                # análisis del grafo existente
+#   ./scripts/topic_pipeline.sh --referencias  # antes, regenera fuentes/referencias_jenui.csv
+#   ./scripts/topic_pipeline.sh --grafo-meta   # opcional: grafo aparte solo con resúmenes
+#                                              # (rag_storage_meta; llama al LLM, reanudable)
 #
 # Lo que sigue a "--" se pasa a topic_evolution.py, p. ej.:
-#   ./scripts/topic_pipeline.sh --solo-analisis -- --resolucion 1.5
+#   ./scripts/topic_pipeline.sh -- --resolucion 1.5
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-RAG_DIR="rag_storage_meta"
-DESCARGAR=0
+META_DIR="rag_storage_meta"
 REFERENCIAS=0
-SOLO_ANALISIS=0
+GRAFO_META=0
 EXTRA=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --descargar) DESCARGAR=1 ;;
     --referencias) REFERENCIAS=1 ;;
-    --solo-analisis) SOLO_ANALISIS=1 ;;
+    --grafo-meta) GRAFO_META=1 ;;
     --) shift; EXTRA=("$@"); break ;;
     *) echo "Opción desconocida: $1"; exit 1 ;;
   esac
@@ -38,29 +36,21 @@ PY=.venv/bin/python
 
 step() { echo; echo "=== $* ==="; }
 
-if [[ $SOLO_ANALISIS -eq 0 ]]; then
-  if [[ $DESCARGAR -eq 1 ]]; then
-    step "1/5 Descarga de PDFs y fichas"
-    $PY scripts/download_sources.py
-  fi
-
-  step "2/5 Ingesta (solo artículos nuevos)"
-  $PY scripts/ingest.py
-
-  if [[ $REFERENCIAS -eq 1 ]]; then
-    step "3/5 Referencias bibliográficas"
-    $PY scripts/extract_references.py
-  fi
-
-  step "4/5 Grafo del análisis en $RAG_DIR (reanudable; progreso: python scripts/status.py --watch --rag-dir $RAG_DIR)"
-  $PY scripts/build_graph.py --scope meta --sin-metadatos --rag-dir "$RAG_DIR"
-
-  step "4b/5 Fusión semántica de entidades del grafo del análisis"
-  $PY scripts/merge_aliases.py --rag-dir "$RAG_DIR"
+if [[ $REFERENCIAS -eq 1 ]]; then
+  step "Referencias bibliográficas (para validar con citas)"
+  $PY scripts/extract_references.py
 fi
 
-step "5/5 Análisis temporal"
-$PY scripts/topic_evolution.py --rag-dir "$RAG_DIR" ${EXTRA[@]+"${EXTRA[@]}"}
+if [[ $GRAFO_META -eq 1 ]]; then
+  step "Grafo aparte en $META_DIR (reanudable; progreso: python scripts/status.py --watch --rag-dir $META_DIR)"
+  $PY scripts/build_graph.py --scope meta --sin-metadatos --rag-dir "$META_DIR"
+  step "Fusión semántica de entidades de $META_DIR"
+  $PY scripts/merge_aliases.py --rag-dir "$META_DIR"
+  EXTRA=(--rag-dir "$META_DIR" ${EXTRA[@]+"${EXTRA[@]}"})
+fi
+
+step "Análisis temporal"
+$PY scripts/topic_evolution.py ${EXTRA[@]+"${EXTRA[@]}"}
 
 echo
 echo "Abre data/analysis/informe_topics.html en el navegador."

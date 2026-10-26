@@ -102,8 +102,12 @@
     ]
   },
   "analysis": {
-    "_comentario": "Análisis temporal de topics (scripts/topic_evolution.py). No afecta al buscador. Lee un grafo aparte, construido con: python scripts/build_graph.py --scope meta --sin-metadatos --rag-dir rag_storage_meta",
-    "grafo_dir": "rag_storage_meta",
+    "_comentario": "Análisis temporal de topics (scripts/topic_evolution.py). No afecta al buscador ni llama al LLM: lee el grafo ya construido.",
+    "_comentario_grafo": "grafo_dir: almacén de LightRAG a leer. Por defecto, el mismo del buscador. Opcionalmente, uno aparte solo con resúmenes: python scripts/build_graph.py --scope meta --sin-metadatos --rag-dir rag_storage_meta",
+    "grafo_dir": "rag_storage",
+    "_comentario_relevancia": "Con texto completo cada artículo acumula ~170 entidades, casi todas menciones de pasada. 'nucleo' cuenta una entidad para un artículo solo si está en su título, palabras clave o resumen, o aparece en al menos min_fragmentos fragmentos (~25 por artículo). 'todas' las cuenta todas.",
+    "relevancia_grafo": "nucleo",
+    "min_fragmentos": 2,
     "_comentario_fuente": "De dónde salen los conceptos de cada artículo: 'grafo' (entidades de LightRAG), 'keywords' (palabras clave de los autores; no necesita grafo) o 'ambos'.",
     "fuente": "ambos",
     "usar_alias_semanticos": true,

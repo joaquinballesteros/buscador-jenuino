@@ -49,14 +49,57 @@ class GraphReader:
             return RawGraph()
 
         chunk_to_article = self._chunk_to_article()
+        entity_to_articles: dict[str, set[str]] = defaultdict(set)
+        discarded = 0
+        for entity, entity_type, chunk_ids in self._nodes():
+            if self._filter.is_discarded(entity_type):
+                discarded += 1
+                continue
+            for chunk_id in chunk_ids:
+                article = chunk_to_article.get(chunk_id)
+                if article:
+                    entity_to_articles[entity].add(article)
+
+        return RawGraph(dict(entity_to_articles), discarded)
+
+    def read_occurrences(self) -> dict[str, dict[str, set[int]]]:
+        """*entidad → artículo → posiciones de los fragmentos* donde aparece.
+
+        Lo usa el análisis temporal para distinguir lo que un artículo *trata*
+        de lo que solo *menciona*: con el texto completo, cada artículo acumula
+        cientos de entidades, la mayoría citadas una sola vez de pasada.
+        """
+        if not self.exists():
+            return {}
+        chunks = self._chunks()
+        occurrences: dict[str, dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
+        for entity, entity_type, chunk_ids in self._nodes():
+            if self._filter.is_discarded(entity_type):
+                continue
+            for chunk_id in chunk_ids:
+                chunk = chunks.get(chunk_id)
+                if chunk and chunk.get("full_doc_id"):
+                    occurrences[entity][chunk["full_doc_id"]].add(
+                        int(chunk.get("chunk_order_index", 0))
+                    )
+        return {e: dict(a) for e, a in occurrences.items()}
+
+    def chunks_per_article(self) -> dict[str, int]:
+        """Nº de fragmentos de cada artículo (1 si el grafo es de ámbito ``meta``)."""
+        counts: dict[str, int] = defaultdict(int)
+        for chunk in self._chunks().values():
+            if chunk.get("full_doc_id"):
+                counts[chunk["full_doc_id"]] += 1
+        return dict(counts)
+
+    # ------------------------------------------------------------------ interno
+    def _nodes(self):
+        """Recorre los nodos del GraphML: ``(entidad, tipo, ids de fragmento)``."""
         root = ET.parse(self._graphml).getroot()
         key_source, key_type = self._attribute_keys(root)
         graph = root.find("g:graph", NAMESPACE)
         if graph is None:
-            return RawGraph()
-
-        entity_to_articles: dict[str, set[str]] = defaultdict(set)
-        discarded = 0
+            return
         for node in graph.findall("g:node", NAMESPACE):
             entity = (node.get("id") or "").strip().strip('"')
             if not entity:
@@ -68,20 +111,14 @@ class GraphReader:
                     source_ids = data.text or ""
                 elif key_type and key == key_type:
                     entity_type = data.text or ""
-            if self._filter.is_discarded(entity_type):
-                discarded += 1
-                continue
-            for chunk_id in source_ids.replace("<SEP>", "|").split("|"):
-                article = chunk_to_article.get(chunk_id.strip())
-                if article:
-                    entity_to_articles[entity].add(article)
+            chunk_ids = [c.strip() for c in source_ids.replace("<SEP>", "|").split("|")]
+            yield entity, entity_type, [c for c in chunk_ids if c]
 
-        return RawGraph(dict(entity_to_articles), discarded)
+    def _chunks(self) -> dict[str, dict]:
+        return json.loads(self._chunks_kv.read_text(encoding="utf-8"))
 
-    # ------------------------------------------------------------------ interno
     def _chunk_to_article(self) -> dict[str, str]:
-        chunks = json.loads(self._chunks_kv.read_text(encoding="utf-8"))
-        return {cid: c.get("full_doc_id") for cid, c in chunks.items()}
+        return {cid: c.get("full_doc_id") for cid, c in self._chunks().items()}
 
     @staticmethod
     def _attribute_keys(root) -> tuple[str | None, str | None]:

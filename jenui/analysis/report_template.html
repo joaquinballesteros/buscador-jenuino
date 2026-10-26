@@ -186,7 +186,7 @@ dl.method dd { margin: 2px 0 0 0; color: var(--text-2); }
     <h2 id="h-metodo">Metodología y parámetros</h2>
     <dl class="method">
       <dt>Conceptos</dt>
-      <dd>Entidades del grafo de conocimiento (LightRAG) y/o palabras clave de los autores, consolidadas por nombre normalizado y alias semánticos. Se descartan metadatos (autores, instituciones), referencias a figuras y tablas, conceptos con año ("Curso 2023/2024") y una lista de términos genéricos.</dd>
+      <dd>Entidades del grafo de conocimiento (LightRAG) y/o palabras clave de los autores, consolidadas por nombre normalizado y alias semánticos. Del grafo solo cuenta el <b>núcleo</b> de cada artículo: entidades que están en su título, palabras clave o resumen, o que aparecen en varios de sus fragmentos (no las menciones de pasada). Se descartan metadatos (autores, instituciones), referencias a figuras y tablas, conceptos con año ("Curso 2023/2024") y una lista de términos genéricos.</dd>
       <dt>Topics</dt>
       <dd>Comunidades de Louvain sobre el grafo de coocurrencia de conceptos (peso de Salton: c<sub>ij</sub>/√(df<sub>i</sub>·df<sub>j</sub>)). Un artículo pertenece a un topic si contiene al menos <span id="p-shared"></span> de sus conceptos. Los conceptos presentes en demasiados artículos (hubs) no participan en la detección.</dd>
       <dt>Prevalencia</dt>

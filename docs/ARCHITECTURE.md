@@ -248,8 +248,13 @@ alias ────────┘   (ruido, hubs)            (Louvain)        (s
 referencias_jenui.csv ─> CitationNetwork ───────────────────────────────────┘
 ```
 
-**Grafo propio.** Se construye en otro almacén (`Paths.with_rag_dir`, opción
-`--rag-dir` de los scripts) con `scope meta` y sin autores ni año
+**Grafo.** Por defecto, el del buscador. Con texto completo cada artículo
+acumula ~170 entidades; `GraphReader.read_occurrences` dice en qué fragmentos
+de cada artículo aparece cada una, y con `relevancia_grafo: "nucleo"` solo
+cuentan las que están en el título, las palabras clave o el resumen, o en al
+menos `min_fragmentos` fragmentos (~25 por artículo). Opcionalmente se puede
+leer otro almacén (`Paths.with_rag_dir`, opción `--rag-dir`), p. ej. uno
+construido con `scope meta` y sin autores ni año
 (`GraphBuilder.build(metadata=False)`). Cada almacén tiene su propio
 `entity_aliases.json`, así que fusionar alias en uno no pisa el otro.
 

@@ -52,6 +52,9 @@ class TopicAnalysis:
         corpus = builder.build(articles, options.year_from, options.year_to)
         if not corpus.article_year:
             raise SystemExit("Ningún artículo tiene conceptos en el rango pedido.")
+        if corpus.mentions_discarded:
+            log(f"Menciones de pasada descartadas (fuera del núcleo): "
+                f"{corpus.mentions_discarded}")
         log(f"Artículos con conceptos: {len(corpus.article_year)}  |  "
             f"años: {corpus.years[0]}–{corpus.years[-1]}  |  "
             f"conceptos: {len(corpus.concept_articles())}")
@@ -95,6 +98,7 @@ class TopicAnalysis:
                 "n_articulos": len(corpus.article_year),
                 "n_conceptos": len(corpus.concept_articles()),
                 "ruido_descartado": corpus.noise_discarded,
+                "menciones_descartadas": corpus.mentions_discarded,
                 "hubs": [{"concepto": corpus.label(c), "articulos": n}
                          for c, n in corpus.hubs],
                 "clases": CLASSES,
@@ -102,6 +106,8 @@ class TopicAnalysis:
                     "min_articulos_concepto": detector.min_df,
                     "min_coocurrencias": detector.min_cooc,
                     "resolucion": detector.resolution,
+                    "relevancia_grafo": self._params.get("relevancia_grafo", "nucleo"),
+                    "min_fragmentos": self._params.get("min_fragmentos", 2),
                     "min_conceptos_articulo": detector.min_shared,
                     "ventana_suavizado": self._params.get("ventana_suavizado", 3),
                     "clasificacion": evolution.params,

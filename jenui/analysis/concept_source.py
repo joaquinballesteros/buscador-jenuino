@@ -57,6 +57,8 @@ class ConceptCorpus:
     article_concepts: dict[str, set[str]]
     labels: dict[str, str]
     noise_discarded: int = 0
+    #: Pares artículo-concepto del grafo descartados por ser menciones de pasada.
+    mentions_discarded: int = 0
     #: Conceptos demasiado frecuentes, con su nº de artículos. Siguen en el
     #: corpus (tienen su serie), pero no participan en la detección de topics.
     hubs: list[tuple[str, int]] = field(default_factory=list)
@@ -96,6 +98,15 @@ class ConceptCorpusBuilder:
 
     Ambas comparten la clave de fusión, de modo que la palabra clave
     "Gamificación" y la entidad "GAMIFICACIÓN" son el mismo concepto.
+
+    **Núcleo del artículo.** Con el grafo de texto completo cada artículo
+    acumula ~170 entidades, la mayoría mencionadas una vez de pasada (la
+    asignatura donde se hizo la experiencia, una herramienta citada…). Con
+    ``relevancia_grafo: "nucleo"`` solo cuenta una entidad para un artículo si
+    su nombre está en el título, las palabras clave o el resumen, o si el
+    extractor la encontró en ``min_fragmentos`` fragmentos distintos del
+    artículo. Deja ~25 por artículo: lo que el artículo *trata*. En un grafo
+    de ámbito ``meta`` (un fragmento por artículo) no se filtra nada.
     """
 
     def __init__(self, settings: Settings, source: str | None = None) -> None:
@@ -128,8 +139,10 @@ class ConceptCorpusBuilder:
         surfaces: dict[str, Counter] = defaultdict(Counter)
         noise = 0
 
+        mentions = 0
         if self.source in ("grafo", "ambos"):
-            noise += self._add_graph(allowed, concepts, surfaces)
+            graph_noise, mentions = self._add_graph(articles, concepts, surfaces)
+            noise += graph_noise
         if self.source in ("keywords", "ambos"):
             noise += self._add_keywords(articles, concepts, surfaces)
 
@@ -144,29 +157,43 @@ class ConceptCorpusBuilder:
             article_concepts=concepts,
             labels={key: self._pick_label(forms) for key, forms in surfaces.items()},
             noise_discarded=noise,
+            mentions_discarded=mentions,
             hubs=hubs,
         )
 
     # ------------------------------------------------------------------ fuentes
-    def _add_graph(self, allowed: set[str], concepts, surfaces) -> int:
+    def _add_graph(self, articles: list[Article], concepts, surfaces) -> tuple[int, int]:
         if not self._reader.exists():
             raise SystemExit(
                 f"No hay grafo en {self._settings.paths.rag_dir}.\n"
-                "Constrúyelo con: python scripts/build_graph.py --scope meta "
-                "--sin-metadatos --rag-dir rag_storage_meta\n"
+                "Indica otro con --rag-dir, constrúyelo con scripts/build_graph.py "
                 "o analiza solo las palabras clave con --fuente keywords."
             )
-        noise = 0
-        for entity, article_ids in self._reader.read().entity_to_articles.items():
+        core_only = self._params.get("relevancia_grafo", "nucleo") == "nucleo"
+        min_chunks = self._params.get("min_fragmentos", 2)
+        headers = {a.id: f" {AliasResolver.normalize(a.dense_header)} " for a in articles}
+        n_chunks = self._reader.chunks_per_article() if core_only else {}
+
+        noise = mentions = 0
+        for entity, occurrences in self._reader.read_occurrences().items():
             key = self._resolver.group_key(entity)
             if self._noise.is_noise(key):
                 noise += 1
                 continue
-            hits = article_ids & allowed
-            for article_id in hits:
+            name = f" {AliasResolver.normalize(entity)} "
+            hits = 0
+            for article_id, positions in occurrences.items():
+                if article_id not in headers:
+                    continue
+                if (core_only and n_chunks.get(article_id, 1) > 1
+                        and len(positions) < min_chunks
+                        and name not in headers[article_id]):
+                    mentions += 1
+                    continue
                 concepts[article_id].add(key)
-            surfaces[key][entity] += len(hits)
-        return noise
+                hits += 1
+            surfaces[key][entity] += hits
+        return noise, mentions
 
     def _add_keywords(self, articles: list[Article], concepts, surfaces) -> int:
         noise = 0

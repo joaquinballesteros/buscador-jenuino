@@ -230,33 +230,26 @@ ni llama al LLM al analizar: lee un grafo ya construido.
 
 ### Ejecutarlo
 
-Con los PDFs y fichas de todos los años en `pdf/` y `fichas/`:
+Usa **el grafo que ya tiene el buscador** (`rag_storage`): no llama al LLM y
+tarda segundos.
 
 ```bash
-./scripts/topic_pipeline.sh                  # ingesta + grafo + alias + análisis
-./scripts/topic_pipeline.sh --referencias    # además, regenera las referencias (validación por citas)
-./scripts/topic_pipeline.sh --solo-analisis  # solo el análisis (segundos), p. ej. tras cambiar config
+python scripts/topic_evolution.py
+./scripts/topic_pipeline.sh --referencias   # igual, pero regenerando antes las referencias (validación por citas)
 ```
 
-Equivale a:
+**Núcleo de cada artículo.** El grafo del buscador se construye con texto
+completo, así que cada artículo acumula ~170 entidades, la mayoría menciones de
+pasada. Para el análisis solo cuenta una entidad si está en el título, las
+palabras clave o el resumen del artículo, o si aparece en al menos dos de sus
+fragmentos: unas 25 por artículo, lo que el artículo *trata*
+(`analysis.relevancia_grafo` en `config.json`).
 
-```bash
-python scripts/ingest.py                                                           # corpus (incremental)
-python scripts/build_graph.py --scope meta --sin-metadatos --rag-dir rag_storage_meta  # grafo del análisis (reanudable)
-python scripts/merge_aliases.py --rag-dir rag_storage_meta                         # fusión semántica (local)
-python scripts/topic_evolution.py                                                  # análisis
-```
-
-Progreso del grafo mientras se construye: `python scripts/status.py --watch --rag-dir rag_storage_meta`.
-
-**¿Por qué un grafo aparte?** El del buscador se construye con texto completo
-(`scope: full`), que mete mucho ruido en una serie temporal ("Figura 2",
-"Tabla I", nombres de cursos) y depende de la calidad del texto de cada PDF:
-los antiguos están escaneados, así que se compararían épocas con calidades
-distintas. Para el análisis se usa solo título + resumen + palabras clave
-(`--scope meta`, una llamada al LLM por artículo, ~1.900 en total) y **sin
-autores ni año** (`--sin-metadatos`): si el año va en el texto, el LLM lo
-extrae como entidad ("JENUI 2024") y sale emergente por construcción.
+**Grafo aparte (opcional).** Si prefieres un grafo construido solo con
+título + resumen + palabras clave y sin autores ni año, sin el sesgo de la
+calidad del texto de los PDFs antiguos escaneados:
+`./scripts/topic_pipeline.sh --grafo-meta`. Llama al LLM una vez por artículo y
+lo guarda en `rag_storage_meta/`, sin tocar el del buscador.
 
 Sin grafo, el análisis también funciona solo con las palabras clave de los
 autores: `python scripts/topic_evolution.py --fuente keywords`.
@@ -274,9 +267,9 @@ autores: `python scripts/topic_evolution.py --fuente keywords`.
 
 ### Cómo se calcula
 
-1. **Conceptos por artículo**: entidades del grafo y/o palabras clave,
-   consolidadas por nombre y alias, sin metadatos ni ruido (figuras, tablas,
-   conceptos con año, términos genéricos).
+1. **Conceptos por artículo**: entidades del núcleo del artículo y/o palabras
+   clave, consolidadas por nombre y alias, sin metadatos ni ruido (figuras,
+   tablas, conceptos con año, términos genéricos).
 2. **Topics**: comunidades (Louvain) del grafo de coocurrencia de conceptos.
 3. **Prevalencia**: fracción de los artículos del año que tratan el topic,
    suavizada con media móvil de 3 años.
@@ -471,7 +464,7 @@ scripts/             puntos de entrada (uno por comando)
 ├── build_concepts.py  índice de vectores de concepto (filtro de relevancia)
 ├── merge_aliases.py   consolida entidades equivalentes del grafo
 ├── topic_evolution.py análisis temporal de topics -> data/analysis/
-├── topic_pipeline.sh  ingesta + grafo del análisis + análisis, de una vez
+├── topic_pipeline.sh  análisis (+ referencias o grafo aparte, opcionales)
 ├── status.py          progreso del grafo, índice vectorial y corpus
 ├── server.py          arranca la web
 ├── run.sh             arranca server.py con el entorno virtual

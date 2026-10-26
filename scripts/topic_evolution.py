@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
 """Análisis temporal de topics: emergentes, consolidados y recurrentes.
 
-Lee el corpus y un grafo ya construido (no llama al LLM) y escribe en
-data/analysis/ los CSV, un JSON completo y un informe HTML con las gráficas.
-Ejecutar desde la raíz del proyecto:
+Lee el corpus y el grafo ya construido del buscador (no llama al LLM) y
+escribe en data/analysis/ los CSV, un JSON completo y un informe HTML con las
+gráficas. Tarda segundos. Ejecutar desde la raíz del proyecto:
 
-    # 1. (una vez) grafo propio del análisis: solo título+resumen+keywords,
-    #    sin autores ni año para que no acaben convertidos en entidades
-    python scripts/build_graph.py --scope meta --sin-metadatos --rag-dir rag_storage_meta
-
-    # 2. análisis (segundos)
     python scripts/topic_evolution.py
-    python scripts/topic_evolution.py --fuente keywords      # sin grafo: palabras clave
-    python scripts/topic_evolution.py --rag-dir rag_storage  # grafo del buscador
     python scripts/topic_evolution.py --resolucion 1.5       # topics más finos
     python scripts/topic_evolution.py --desde 1997 --hasta 2026
+    python scripts/topic_evolution.py --fuente keywords      # sin grafo: palabras clave
+    python scripts/topic_evolution.py --rag-dir rag_storage_meta   # otro grafo
 
 Los parámetros están en config.json -> analysis. La lógica vive en
 jenui.analysis.TopicAnalysis.
