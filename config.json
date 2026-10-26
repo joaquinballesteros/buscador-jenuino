@@ -3,8 +3,8 @@
   "providers": {
     "_comentario": "Estrategias intercambiables (ver providers.py). Elegir ANTES de construir el índice: cambiar embeddings obliga a reconstruir.",
     "llm": {
-      "provider": "openai",
-      "model": "gpt-5.4-nano"
+      "provider": "ollama",
+      "model": "qwen3.8:27b-q4_K_M"
     },
     "embeddings": {
       "provider": "ollama",
@@ -29,7 +29,7 @@
     "chunk_overlap_token_size": 100,
     "entity_extract_max_gleaning": 1,
     "_comentario_max_async": "Con Ollama local usa 2 (limita la GPU). Con una API puedes subirlo mucho: 4-8 según tu tier de rate limit.",
-    "llm_max_async": 8,
+    "llm_max_async": 2,
     "_comentario_entity_types": "Ontología del dominio: QUÉ debe extraer el LLM. La ontología por defecto de LightRAG (Person/Organization/Location) hacía que el 49% de las entidades fuesen autores y universidades, que no relacionan artículos por tema. Añade o quita tipos según tu corpus.",
     "entity_types": [
       "metodologia_docente",
@@ -102,12 +102,8 @@
     ]
   },
   "analysis": {
-    "_comentario": "Análisis temporal de topics (scripts/topic_evolution.py). No afecta al buscador ni llama al LLM: lee el grafo ya construido.",
-    "_comentario_grafo": "grafo_dir: almacén de LightRAG a leer. Por defecto, el mismo del buscador. Opcionalmente, uno aparte solo con resúmenes: python scripts/build_graph.py --scope meta --sin-metadatos --rag-dir rag_storage_meta",
-    "grafo_dir": "rag_storage",
-    "_comentario_relevancia": "Con texto completo cada artículo acumula ~170 entidades, casi todas menciones de pasada. 'nucleo' cuenta una entidad para un artículo solo si está en su título, palabras clave o resumen, o aparece en al menos min_fragmentos fragmentos (~25 por artículo). 'todas' las cuenta todas.",
-    "relevancia_grafo": "nucleo",
-    "min_fragmentos": 2,
+    "_comentario": "Análisis temporal de topics (scripts/topic_evolution.py). No afecta al buscador. Lee un grafo aparte, construido con: python scripts/build_graph.py --scope meta --sin-metadatos --rag-dir rag_storage_meta",
+    "grafo_dir": "rag_storage_meta",
     "_comentario_fuente": "De dónde salen los conceptos de cada artículo: 'grafo' (entidades de LightRAG), 'keywords' (palabras clave de los autores; no necesita grafo) o 'ambos'.",
     "fuente": "ambos",
     "usar_alias_semanticos": true,

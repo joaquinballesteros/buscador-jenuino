@@ -5,7 +5,7 @@
     "dim": 1024
   },
   "llm": {
-    "provider": "openai",
-    "model": "gpt-5.4-nano"
+    "provider": "ollama",
+    "model": "qwen3.8:27b-q4_K_M"
   }
 }
