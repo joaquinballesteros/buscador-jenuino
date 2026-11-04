@@ -46,6 +46,7 @@ class AliasResolver:
         self._aliases_path = aliases_path
         self._manual = {self.normalize(k): self.normalize(v)
                         for k, v in (manual or {}).items()}
+        self._manual_targets = set(self._manual.values())
         self._semantic = self._load_semantic()
 
     def _load_semantic(self) -> dict[str, str]:
@@ -96,14 +97,23 @@ class AliasResolver:
         article_map: dict[str, set[str]] = defaultdict(set)
 
         for key, names in variants.items():
-            canonical = self.pick_canonical(names)
+            canonical = self.pick_canonical(names, entity_to_articles)
             entity_map[canonical] = articles[key]
             for article_id in articles[key]:
                 article_map[article_id].add(canonical)
 
         return ConsolidatedGraph(entity_map, dict(article_map), merged)
 
-    @staticmethod
-    def pick_canonical(names: set[str]) -> str:
-        """Nombre representativo del grupo: el más largo (más informativo)."""
-        return sorted(names, key=lambda name: (-len(name), name))[0]
+    def pick_canonical(self, names: set[str],
+                       support: dict[str, set[str]] | None = None) -> str:
+        """Nombre que se muestra para el grupo.
+
+        La forma de ``alias_canonicos`` si está entre las variantes; si no, la
+        que usan más artículos y, a igualdad, la más larga. Antes ganaba siempre
+        la más larga, y una errata o un plural raro podía dar nombre al grupo
+        ("Primero Curso" en vez de "Primer Curso").
+        """
+        support = support or {}
+        return sorted(names, key=lambda name: (
+            self.normalize(name) not in self._manual_targets,
+            -len(support.get(name, ())), -len(name), name))[0]
