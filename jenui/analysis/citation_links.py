@@ -79,7 +79,10 @@ class CitationNetwork:
                     received[target] += 1
 
         stats = CitationStats(citas_internas=internal,
-                              mas_citados=received.most_common(3))
+                              # empates por id: most_common desempata por orden de
+                              # inserción, que depende del hash de cada proceso
+                              mas_citados=sorted(received.items(),
+                                                 key=lambda kv: (-kv[1], kv[0]))[:3])
         if onset is None:
             return stats
         limit = onset + pioneer_years - 1

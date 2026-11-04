@@ -68,7 +68,10 @@ class TopicDetector:
         """Topics de ``article_ids`` (por defecto, todo el corpus)."""
         ids = set(corpus.article_concepts if article_ids is None else article_ids)
         hubs = corpus.hub_keys
-        concepts = {a: corpus.article_concepts[a] - hubs for a in ids
+        # en orden: Louvain parte del orden de los nodos, y el de un set cambia
+        # en cada proceso (hash aleatorio), así que sin ordenar los topics
+        # variaban de una ejecución a otra pese a la semilla fija
+        concepts = {a: corpus.article_concepts[a] - hubs for a in sorted(ids)
                     if a in corpus.article_concepts}
         graph = self.cooccurrence_graph(concepts)
         if graph.number_of_edges() == 0:
@@ -104,7 +107,7 @@ class TopicDetector:
             pairs.update(combinations(sorted(article_concepts & vocabulary), 2))
 
         graph = nx.Graph()
-        for (a, b), count in pairs.items():
+        for (a, b), count in sorted(pairs.items()):
             if count >= self.min_cooc:
                 graph.add_edge(a, b, weight=count / math.sqrt(df[a] * df[b]),
                                count=count)
