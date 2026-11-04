@@ -1,7 +1,7 @@
 """Rutas del proyecto."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 
@@ -14,11 +14,27 @@ class Paths:
     """
 
     root: Path
+    #: Almacén de LightRAG alternativo (por defecto, ``rag_storage``).
+    rag_root: Path | None = None
 
     @classmethod
     def default(cls) -> "Paths":
         # jenui/config/paths.py -> raíz del proyecto
         return cls(root=Path(__file__).resolve().parents[2])
+
+    def with_rag_dir(self, rag_dir: str | Path | None) -> "Paths":
+        """Copia que apunta a otro almacén de LightRAG.
+
+        Permite tener un segundo grafo (p. ej. el del análisis temporal, en
+        ``rag_storage_meta``) sin tocar el que usa el buscador. Las rutas
+        relativas se resuelven desde la raíz del proyecto.
+        """
+        if not rag_dir:
+            return self
+        rag_dir = Path(rag_dir)
+        if not rag_dir.is_absolute():
+            rag_dir = self.root / rag_dir
+        return replace(self, rag_root=rag_dir)
 
     # --- entradas ---
     @property
@@ -60,12 +76,24 @@ class Paths:
 
     @property
     def aliases_file(self) -> Path:
+        """Mapa de alias semánticos. Es propio de cada grafo: el de un almacén
+        alternativo vive dentro de él, para no pisar el del buscador."""
+        if self.rag_root:
+            return self.rag_root / "entity_aliases.json"
         return self.data_dir / "entity_aliases.json"
+
+    @property
+    def analysis_dir(self) -> Path:
+        return self.data_dir / "analysis"
+
+    @property
+    def references_file(self) -> Path:
+        return self.root / "fuentes" / "referencias_jenui.csv"
 
     # --- almacén de LightRAG ---
     @property
     def rag_dir(self) -> Path:
-        return self.root / "rag_storage"
+        return self.rag_root or self.root / "rag_storage"
 
     @property
     def graphml_file(self) -> Path:
