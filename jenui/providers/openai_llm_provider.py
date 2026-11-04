@@ -30,16 +30,20 @@ class OpenAILLMProvider(LLMProvider):
         self._api_key = settings.openai_api_key
         self._base_url = settings.openai_base_url
         self._max_async = settings.graph.get("llm_max_async", 4)
+        # Campos extra del cuerpo de la petición, para servidores compatibles
+        # (LiteLLM, vLLM...). P. ej. {"think": false} desactiva el razonamiento
+        # de Qwen3 servido por Ollama detrás de LiteLLM.
+        self._extra_body = settings.get("providers.openai.extra_body", None)
 
     def as_lightrag_kwargs(self) -> dict:
         from lightrag.llm.openai import openai_complete
 
+        model_kwargs = {"api_key": self._api_key, "base_url": self._base_url}
+        if self._extra_body:
+            model_kwargs["extra_body"] = self._extra_body
         return {
             "llm_model_func": openai_complete,
             "llm_model_name": self.model,
             "llm_model_max_async": self._max_async,
-            "llm_model_kwargs": {
-                "api_key": self._api_key,
-                "base_url": self._base_url,
-            },
+            "llm_model_kwargs": model_kwargs,
         }

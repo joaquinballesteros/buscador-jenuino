@@ -3,7 +3,7 @@
   "providers": {
     "_comentario": "Estrategias intercambiables (ver providers.py). Elegir ANTES de construir el índice: cambiar embeddings obliga a reconstruir.",
     "llm": {
-      "provider": "ollama",
+      "provider": "openai",
       "model": "qwen3.8:27b-q4_K_M"
     },
     "embeddings": {
@@ -14,6 +14,10 @@
     "ollama": {
       "host": "http://localhost:11434",
       "num_ctx": 16384
+    },
+    "openai": {
+      "_comentario": "Proveedor 'openai' contra cualquier API compatible: el destino y la clave salen de OPENAI_BASE_URL y OPENAI_API_KEY (.env). extra_body se añade a cada petición; {\"think\": false} desactiva el razonamiento de Qwen3 servido por Ollama detrás de LiteLLM.",
+      "extra_body": {"think": false}
     }
   },
   "ingestion": {
