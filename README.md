@@ -252,33 +252,33 @@ ni llama al LLM al analizar: lee un grafo ya construido.
 
 ### Ejecutarlo
 
-Con los PDFs y fichas de todos los años en `pdf/` y `fichas/`:
+Lee el **mismo grafo que el buscador** (`rag_storage/`), así que basta con:
 
 ```bash
-./scripts/topic_pipeline.sh                  # ingesta + grafo + alias + análisis
-./scripts/topic_pipeline.sh --referencias    # además, regenera las referencias (validación por citas)
-./scripts/topic_pipeline.sh --solo-analisis  # solo el análisis (segundos), p. ej. tras cambiar config
+./scripts/topic_pipeline.sh                  # análisis del grafo existente (segundos)
+./scripts/topic_pipeline.sh --referencias    # antes, regenera las referencias (validación por citas)
+./scripts/topic_pipeline.sh -- --resolucion 1.5   # lo que va tras "--" pasa a topic_evolution.py
 ```
 
-Equivale a:
+Si el grafo aún no existe o hay que rehacerlo (p. ej. tras cambiar la ontología):
 
 ```bash
-python scripts/ingest.py                                                           # corpus (incremental)
-python scripts/build_graph.py --scope meta --sin-metadatos --rag-dir rag_storage_meta  # grafo del análisis (reanudable)
-python scripts/merge_aliases.py --rag-dir rag_storage_meta                         # fusión semántica (local)
-python scripts/topic_evolution.py                                                  # análisis
+python scripts/build_graph.py --scope meta --sin-metadatos   # grafo (reanudable; horas)
+python scripts/merge_aliases.py                              # fusión semántica de entidades
+python scripts/build_concepts.py                             # índice de conceptos del buscador
+python scripts/topic_evolution.py                            # análisis
 ```
 
-Progreso del grafo mientras se construye: `python scripts/status.py --watch --rag-dir rag_storage_meta`.
+Progreso del grafo mientras se construye: `python scripts/status.py --watch`.
 
-**¿Por qué un grafo aparte?** El del buscador se construye con texto completo
-(`scope: full`), que mete mucho ruido en una serie temporal ("Figura 2",
-"Tabla I", nombres de cursos) y depende de la calidad del texto de cada PDF:
-los antiguos están escaneados, así que se compararían épocas con calidades
-distintas. Para el análisis se usa solo título + resumen + palabras clave
-(`--scope meta`, una llamada al LLM por artículo, ~1.900 en total) y **sin
-autores ni año** (`--sin-metadatos`): si el año va en el texto, el LLM lo
-extrae como entidad ("JENUI 2024") y sale emergente por construcción.
+**¿Por qué solo título, resumen y palabras clave, y sin autores ni año?** El
+texto completo mete mucho ruido en una serie temporal ("Figura 2", "Tabla I",
+nombres de cursos) y depende de la calidad de cada PDF: los antiguos están
+escaneados, así que se compararían épocas con calidades distintas. Con
+`--scope meta` es una llamada al LLM por artículo (~1.900 en total). Y si el
+año va en el texto, el LLM lo extrae como entidad ("JENUI 2024") y sale
+emergente por construcción: de ahí `--sin-metadatos`. El mismo grafo sirve al
+buscador; un grafo aparte sigue siendo posible con `--rag-dir`.
 
 Sin grafo, el análisis también funciona solo con las palabras clave de los
 autores: `python scripts/topic_evolution.py --fuente keywords`.
@@ -534,7 +534,7 @@ scripts/             puntos de entrada (uno por comando)
 ├── build_concepts.py  índice de vectores de concepto (filtro de relevancia)
 ├── merge_aliases.py   consolida entidades equivalentes del grafo
 ├── topic_evolution.py análisis temporal de topics -> data/analysis/
-├── topic_pipeline.sh  ingesta + grafo del análisis + análisis, de una vez
+├── topic_pipeline.sh  análisis temporal sobre el grafo (y referencias, opcional)
 ├── status.py          progreso del grafo, índice vectorial y corpus
 ├── server.py          arranca la web
 ├── run.sh             arranca server.py con el entorno virtual
