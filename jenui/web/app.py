@@ -6,6 +6,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from jenui.config.settings import Settings
+from jenui.domain.search_result import SearchResult
+from jenui.evaluation import JudgmentStore
 from jenui.search.searcher import Searcher
 
 
@@ -42,6 +44,58 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def testing():
         """Página de depuración que muestra los pasos intermedios de la búsqueda."""
         return FileResponse(settings.paths.static_dir / "testing.html")
+
+    store = JudgmentStore(settings.paths.evaluation_dir)
+
+    @app.get("/evaluar")
+    def evaluar():
+        """Página para juzgar la relevancia de los candidatos de cada consulta."""
+        return FileResponse(settings.paths.static_dir / "evaluar.html")
+
+    @app.get("/api/evaluar")
+    def evaluation_queries(evaluador: str):
+        """Consultas del banco, con cuántos candidatos lleva juzgados el evaluador."""
+        try:
+            judged = store.judgments(evaluador)
+        except ValueError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=400)
+        pool = store.candidates()
+        return [{**q, "total": len(pool.get(q["id"], [])),
+                 "juzgados": sum((q["id"], a) in judged for a in pool.get(q["id"], []))}
+                for q in store.queries()]
+
+    @app.get("/api/evaluar/{query_id}")
+    def evaluation_candidates(query_id: str, evaluador: str):
+        """Candidatos de una consulta con la ficha del artículo y el juicio del
+        evaluador. No muestra los de otros evaluadores: se juzga a ciegas."""
+        query = store.query(query_id)
+        if not query:
+            return JSONResponse({"error": "consulta desconocida"}, status_code=404)
+        try:
+            judged = store.judgments(evaluador)
+        except ValueError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=400)
+        searcher.refresh_if_changed()
+        candidates = []
+        for article_id in store.candidates().get(query_id, []):
+            article = searcher.articles.get(article_id)
+            if article:
+                card = SearchResult(article, 0.0, 0.0).to_dict()
+                card["relevancia"] = judged.get((query_id, article_id))
+                candidates.append(card)
+        return {**query, "candidatos": candidates}
+
+    @app.post("/api/evaluar/{query_id}/{article_id}")
+    def evaluation_judge(query_id: str, article_id: str, evaluador: str,
+                         relevancia: int | None = None):
+        """Guarda el juicio (0, 1 o 2) del evaluador; sin ``relevancia`` lo borra."""
+        if article_id not in store.candidates().get(query_id, []):
+            return JSONResponse({"error": "no es candidato de esa consulta"}, status_code=404)
+        try:
+            store.judge(evaluador, query_id, article_id, relevancia)
+        except ValueError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=400)
+        return {"ok": True}
 
     @app.get("/api/status")
     def status():

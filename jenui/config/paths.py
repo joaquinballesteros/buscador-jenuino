@@ -103,6 +103,11 @@ class Paths:
     def chunks_kv_file(self) -> Path:
         return self.rag_dir / "kv_store_text_chunks.json"
 
+    # --- evaluación de la búsqueda ---
+    @property
+    def evaluation_dir(self) -> Path:
+        return self.root / "evaluacion"
+
     # --- web ---
     @property
     def static_dir(self) -> Path:

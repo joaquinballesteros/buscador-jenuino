@@ -57,6 +57,16 @@ class Settings:
         except json.JSONDecodeError as exc:
             raise SystemExit(f"[ERROR] config.json no es JSON válido: {exc}") from exc
 
+    def with_overrides(self, section: str, values: dict) -> "Settings":
+        """Copia con algunas claves de una sección cambiadas.
+
+        Para comparar configuraciones en un mismo proceso (p. ej. la
+        evaluación de la búsqueda) sin tocar ``config.json``.
+        """
+        raw = json.loads(json.dumps(self._raw))
+        raw.setdefault(section, {}).update(values)
+        return Settings(raw, self.paths)
+
     # ------------------------------------------------------------- acceso raw
     def get(self, path: str, default: Any = None, env: str | None = None,
             cast=None) -> Any:

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buscador JENUINO · Evaluar</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#181b22; --border:#272b34; --fg:#e8eaed;
+    --muted:#9aa0ab; --accent:#6ea8fe; --chip:#232a38; --chip-fg:#a9c7ff;
+    --r0:#f87171; --r1:#fbbf24; --r2:#4ade80;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       background:var(--bg);color:var(--fg);line-height:1.5}
+  header{padding:22px 16px 6px;text-align:center}
+  h1{margin:0;font-size:1.4rem}
+  h1 span{color:var(--accent)}
+  .sub{color:var(--muted);font-size:.82rem;margin-top:4px}
+  .sub a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:980px;margin:0 auto;padding:0 16px 80px}
+  .top{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 10px;
+       border-bottom:1px solid var(--border)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  select{flex:1;min-width:0;padding:10px 12px;font-size:.95rem;border-radius:10px;
+         border:1px solid var(--border);background:var(--card);color:var(--fg)}
+  .btn{padding:9px 14px;font-size:.9rem;border:1px solid var(--border);border-radius:10px;
+       cursor:pointer;background:var(--card);color:var(--fg)}
+  .btn:hover{border-color:var(--accent)}
+  .progress{height:6px;border-radius:3px;background:var(--border);margin-top:10px;overflow:hidden}
+  .progress div{height:100%;background:var(--accent);transition:width .2s}
+  .ptext{color:var(--muted);font-size:.78rem;margin-top:4px}
+  .query{background:var(--card);border:1px solid var(--border);border-radius:14px;
+         padding:14px 16px;margin:14px 0 6px}
+  .query .q{font-size:1.15rem;font-weight:600}
+  .query .crit{margin-top:6px;padding:8px 10px;border-left:3px solid var(--accent);
+               background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;font-size:.92rem}
+  .query .meta{color:var(--muted);font-size:.78rem;margin-top:6px}
+  .legend{color:var(--muted);font-size:.78rem;margin:8px 2px 4px}
+  .legend b{color:var(--fg)}
+  .legend kbd,.help kbd{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;
+       background:var(--chip);color:var(--chip-fg);padding:1px 5px;border-radius:4px}
+  .cand{background:var(--card);border:1px solid var(--border);border-radius:12px;
+        padding:12px 14px;margin:10px 0;scroll-margin:150px}
+  .cand.focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .cand.done{opacity:.72}
+  .cand.done.focus{opacity:1}
+  .head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+  .title{font-weight:600;color:var(--fg);text-decoration:none}
+  .title:hover{color:var(--accent)}
+  .by{color:var(--muted);font-size:.8rem;margin-top:2px}
+  .abs{font-size:.88rem;margin-top:8px;color:#cfd3da;cursor:pointer;
+       display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+  .abs.open{display:block}
+  .chips{margin-top:6px}
+  .chip{background:var(--chip);color:var(--chip-fg);font-size:.7rem;padding:2px 8px;
+        border-radius:999px;margin:2px 3px 0 0;display:inline-block}
+  .scores{display:flex;gap:6px;flex-shrink:0}
+  .scores button{width:44px;height:38px;border-radius:9px;border:1px solid var(--border);
+       background:#11141a;color:var(--muted);font-weight:700;font-size:.95rem;cursor:pointer}
+  .scores button:hover{border-color:var(--fg);color:var(--fg)}
+  .scores button.on[data-r="0"]{background:var(--r0);border-color:var(--r0);color:#1a0b0b}
+  .scores button.on[data-r="1"]{background:var(--r1);border-color:var(--r1);color:#1a1405}
+  .scores button.on[data-r="2"]{background:var(--r2);border-color:var(--r2);color:#06180c}
+  .empty{color:var(--muted);text-align:center;padding:40px 10px}
+  .help{color:var(--muted);font-size:.76rem;text-align:center;margin-top:18px}
+  .who{color:var(--muted);font-size:.8rem;margin-bottom:8px}
+  .who b{color:var(--fg)}
+  .who a{color:var(--accent);cursor:pointer}
+  .login{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin:24px 0}
+  .login p{color:var(--muted);font-size:.88rem;margin:0 0 12px}
+  .login input{width:100%;padding:10px 12px;font-size:1rem;border-radius:10px;
+       border:1px solid var(--border);background:#11141a;color:var(--fg);margin-bottom:10px}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--r0);
+         color:#1a0b0b;padding:8px 14px;border-radius:10px;font-size:.85rem;display:none}
+  @media (max-width:640px){
+    .head{flex-direction:column}
+    .scores{align-self:flex-end}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Buscador <span>JENUINO</span> · Evaluar</h1>
+  <div class="sub">Juicios de relevancia del banco de consultas · <a href="/">buscador</a> · <a href="/testing">testing</a></div>
+</header>
+<div class="wrap">
+  <div class="top" id="top" hidden>
+    <div class="who">Evaluando como <b id="who"></b> · <a id="change">cambiar</a></div>
+    <div class="row">
+      <select id="sel" aria-label="Consulta"></select>
+      <button class="btn" id="next" title="Siguiente consulta pendiente (n)">Siguiente pendiente →</button>
+    </div>
+    <div class="progress"><div id="bar" style="width:0"></div></div>
+    <div class="ptext" id="ptext"></div>
+  </div>
+  <div id="login" class="login" hidden>
+    <p>Cada evaluador juzga a ciegas y en su propio fichero (<code>evaluacion/juicios/&lt;nombre&gt;.csv</code>);
+       el juicio final de cada artículo es la mediana de todos. Escribe tu nombre o iniciales
+       (minúsculas, números, guiones) y usa siempre el mismo.</p>
+    <input id="name" placeholder="p. ej. jballesteros" autocomplete="off">
+    <button class="btn" id="enter">Empezar</button>
+  </div>
+  <div id="main"></div>
+  <div class="help">
+    <kbd>↑</kbd><kbd>↓</kbd> o <kbd>j</kbd><kbd>k</kbd> moverse · <kbd>0</kbd><kbd>1</kbd><kbd>2</kbd> juzgar y avanzar ·
+    <kbd>n</kbd> siguiente consulta pendiente · clic en el resumen para desplegarlo · volver a pulsar un juicio lo borra
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let queries = [], current = null, cands = [], focus = 0, evaluator = null;
+const api = (path, opts) => fetch(path + (path.includes("?") ? "&" : "?") + "evaluador=" + encodeURIComponent(evaluator), opts);
+
+function store(key, value){ try{ localStorage.setItem(key, value); }catch(e){} }
+function stored(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.style.display = "block"; setTimeout(() => t.style.display = "none", 3500); }
+
+async function loadQueries(){
+  queries = await (await api("/api/evaluar")).json();
+  renderSelect(); renderProgress();
+}
+function renderSelect(){
+  $("#sel").innerHTML = queries.map(q =>
+    `<option value="${q.id}">${q.juzgados >= q.total && q.total ? "✓" : "·"} ${q.id} — ${esc(q.consulta)} (${q.juzgados}/${q.total})</option>`).join("");
+  if (current) $("#sel").value = current.id;
+}
+function renderProgress(){
+  const total = queries.reduce((s, q) => s + q.total, 0), done = queries.reduce((s, q) => s + q.juzgados, 0);
+  const full = queries.filter(q => q.total && q.juzgados >= q.total).length;
+  $("#bar").style.width = total ? (100 * done / total) + "%" : "0";
+  $("#ptext").textContent = total
+    ? `${done} de ${total} juicios · ${full} de ${queries.length} consultas completas`
+    : "Aún no hay candidatos: ejecuta scripts/eval_pool.py";
+}
+async function openQuery(id){
+  const data = await (await api("/api/evaluar/" + encodeURIComponent(id))).json();
+  current = data; cands = data.candidatos || [];
+  store("evaluar.consulta", id); history.replaceState(null, "", "#" + id);
+  $("#sel").value = id;
+  focus = Math.max(0, cands.findIndex(c => c.relevancia == null));
+  render();
+}
+function render(){
+  const q = current;
+  const head = `<div class="query"><div class="q">${esc(q.consulta)}</div>
+    <div class="crit"><b>Relevante si:</b> ${esc(q.criterio_relevancia)}</div>
+    <div class="meta">${esc(q.id)} · ${esc(q.tipo)} · ${esc(q.estilo)}</div></div>
+    <div class="legend"><b>2</b> muy relevante: cumple el criterio de lleno · <b>1</b> parcial: lo toca o cumple solo una parte · <b>0</b> no relevante</div>`;
+  const body = cands.length ? cands.map((c, i) => `
+    <div class="cand ${c.relevancia != null ? "done" : ""} ${i === focus ? "focus" : ""}" id="c${i}" data-i="${i}">
+      <div class="head">
+        <div>
+          <a class="title" href="${esc(c.pdf)}" target="_blank" rel="noopener">${esc(c.title)}</a>
+          <div class="by">${esc((c.authors || "").replace(/ \| /g, ", "))}${c.year ? " · " + c.year : ""}</div>
+        </div>
+        <div class="scores">${[0,1,2].map(r =>
+          `<button data-r="${r}" class="${c.relevancia === r ? "on" : ""}" title="${["No relevante","Parcial","Muy relevante"][r]}">${r}</button>`).join("")}</div>
+      </div>
+      <div class="abs">${esc(c.abstract || "(sin resumen)")}</div>
+      ${c.keywords ? `<div class="chips">${c.keywords.split(/[;,]/).filter(k => k.trim()).map(k => `<span class="chip">${esc(k.trim())}</span>`).join("")}</div>` : ""}
+    </div>`).join("") : `<div class="empty">Esta consulta aún no tiene candidatos.</div>`;
+  $("#main").innerHTML = head + body;
+}
+function setFocus(i, scroll = true){
+  if (!cands.length) return;
+  focus = Math.max(0, Math.min(cands.length - 1, i));
+  document.querySelectorAll(".cand").forEach(el => el.classList.toggle("focus", +el.dataset.i === focus));
+  if (scroll) $("#c" + focus)?.scrollIntoView({block: "nearest", behavior: "smooth"});
+}
+async function judge(i, r){
+  const c = cands[i]; const value = c.relevancia === r ? null : r;
+  const url = `/api/evaluar/${encodeURIComponent(current.id)}/${encodeURIComponent(c.id)}` + (value == null ? "" : `?relevancia=${value}`);
+  const res = await api(url, {method: "POST"});
+  if (!res.ok){ toast("No se pudo guardar el juicio"); return; }
+  const before = c.relevancia; c.relevancia = value;
+  const q = queries.find(x => x.id === current.id);
+  q.juzgados += (before == null && value != null) - (before != null && value == null);
+  const el = $("#c" + i);
+  el.classList.toggle("done", value != null);
+  el.querySelectorAll(".scores button").forEach(b => b.classList.toggle("on", +b.dataset.r === value));
+  renderSelect(); renderProgress();
+  if (value != null){
+    const next = cands.findIndex((x, j) => j > i && x.relevancia == null);
+    setFocus(next >= 0 ? next : i);
+  }
+}
+function nextPending(){
+  const start = queries.findIndex(q => q.id === current?.id);
+  for (let k = 1; k <= queries.length; k++){
+    const q = queries[(start + k) % queries.length];
+    if (q.total && q.juzgados < q.total) return openQuery(q.id);
+  }
+  toast("No quedan consultas pendientes");
+}
+
+$("#sel").addEventListener("change", e => openQuery(e.target.value));
+$("#next").addEventListener("click", nextPending);
+$("#main").addEventListener("click", e => {
+  const card = e.target.closest(".cand"); if (!card) return;
+  const i = +card.dataset.i;
+  const btn = e.target.closest(".scores button");
+  if (btn){ setFocus(i, false); judge(i, +btn.dataset.r); return; }
+  if (e.target.closest(".abs")) e.target.closest(".abs").classList.toggle("open");
+  if (!e.target.closest("a")) setFocus(i, false);
+});
+document.addEventListener("keydown", e => {
+  if (!current || e.target.matches("select,input,textarea") || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (["ArrowDown","j"].includes(e.key)){ e.preventDefault(); setFocus(focus + 1); }
+  else if (["ArrowUp","k"].includes(e.key)){ e.preventDefault(); setFocus(focus - 1); }
+  else if (["0","1","2"].includes(e.key) && cands.length){ judge(focus, +e.key); }
+  else if (e.key === "n"){ nextPending(); }
+});
+
+const slug = s => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+async function start(){
+  $("#login").hidden = true; $("#top").hidden = false; $("#who").textContent = evaluator;
+  $("#main").innerHTML = `<div class="empty">Cargando…</div>`;
+  await loadQueries();
+  const wanted = location.hash.slice(1) || stored("evaluar.consulta");
+  const first = queries.find(q => q.id === wanted) || queries.find(q => q.total && q.juzgados < q.total) || queries[0];
+  if (first) openQuery(first.id); else $("#main").innerHTML = `<div class="empty">No hay consultas en evaluacion/consultas.csv</div>`;
+}
+function login(){
+  current = null; cands = [];
+  $("#top").hidden = true; $("#main").innerHTML = ""; $("#login").hidden = false;
+  $("#name").value = evaluator || ""; $("#name").focus();
+}
+function enter(){
+  const name = slug($("#name").value);
+  if (!name){ toast("Escribe un nombre: letras, números o guiones"); return; }
+  evaluator = name; store("evaluar.evaluador", name); start();
+}
+$("#enter").addEventListener("click", enter);
+$("#name").addEventListener("keydown", e => { if (e.key === "Enter") enter(); });
+$("#change").addEventListener("click", login);
+evaluator = stored("evaluar.evaluador");
+if (evaluator) start(); else login();
+</script>
+</body>
+</html>
