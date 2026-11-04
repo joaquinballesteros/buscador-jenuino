@@ -111,7 +111,7 @@
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let queries = [], current = null, cands = [], focus = 0, evaluator = null;
+let queries = [], current = null, cands = [], focus = 0, evaluator = null, viaProxy = false;
 const api = (path, opts) => fetch(path + (path.includes("?") ? "&" : "?") + "evaluador=" + encodeURIComponent(evaluator), opts);
 
 function store(key, value){ try{ localStorage.setItem(key, value); }catch(e){} }
@@ -236,8 +236,13 @@ function enter(){
 $("#enter").addEventListener("click", enter);
 $("#name").addEventListener("keydown", e => { if (e.key === "Enter") enter(); });
 $("#change").addEventListener("click", login);
-evaluator = stored("evaluar.evaluador");
-if (evaluator) start(); else login();
+(async () => {
+  // detrás del proxy con contraseña, el evaluador es el usuario identificado
+  try { viaProxy = !!(evaluator = (await (await fetch("/api/evaluador")).json()).evaluador); } catch(e){}
+  if (viaProxy){ $("#change").hidden = true; start(); return; }
+  evaluator = stored("evaluar.evaluador");
+  if (evaluator) start(); else login();
+})();
 </script>
 </body>
 </html>

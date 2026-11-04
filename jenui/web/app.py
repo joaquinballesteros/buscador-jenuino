@@ -1,7 +1,7 @@
 """Aplicación web: API de búsqueda e interfaz."""
 from __future__ import annotations
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -47,16 +47,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     store = JudgmentStore(settings.paths.evaluation_dir)
 
+    def evaluator_of(request: Request, declared: str | None) -> str:
+        """Evaluador de la petición.
+
+        Detrás del reverse proxy con autenticación básica, nginx pasa el usuario
+        identificado en ``X-Remote-User`` y es el que cuenta: nadie puede
+        juzgar en nombre de otro. Sin proxy (uso local) vale el nombre que
+        declara la página. El servidor escucha solo en 127.0.0.1, así que la
+        cabecera solo puede venir del proxy, que la vacía en el resto de rutas.
+        """
+        return request.headers.get("x-remote-user") or declared or ""
+
+    @app.get("/api/evaluador")
+    def evaluation_identity(request: Request):
+        """Evaluador identificado por el proxy, o ``null`` si no hay proxy."""
+        return {"evaluador": request.headers.get("x-remote-user") or None}
+
     @app.get("/evaluar")
     def evaluar():
         """Página para juzgar la relevancia de los candidatos de cada consulta."""
         return FileResponse(settings.paths.static_dir / "evaluar.html")
 
     @app.get("/api/evaluar")
-    def evaluation_queries(evaluador: str):
+    def evaluation_queries(request: Request, evaluador: str | None = None):
         """Consultas del banco, con cuántos candidatos lleva juzgados el evaluador."""
         try:
-            judged = store.judgments(evaluador)
+            judged = store.judgments(evaluator_of(request, evaluador))
         except ValueError as exc:
             return JSONResponse({"error": str(exc)}, status_code=400)
         pool = store.candidates()
@@ -65,14 +81,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 for q in store.queries()]
 
     @app.get("/api/evaluar/{query_id}")
-    def evaluation_candidates(query_id: str, evaluador: str):
+    def evaluation_candidates(query_id: str, request: Request, evaluador: str | None = None):
         """Candidatos de una consulta con la ficha del artículo y el juicio del
         evaluador. No muestra los de otros evaluadores: se juzga a ciegas."""
         query = store.query(query_id)
         if not query:
             return JSONResponse({"error": "consulta desconocida"}, status_code=404)
         try:
-            judged = store.judgments(evaluador)
+            judged = store.judgments(evaluator_of(request, evaluador))
         except ValueError as exc:
             return JSONResponse({"error": str(exc)}, status_code=400)
         searcher.refresh_if_changed()
@@ -86,13 +102,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {**query, "candidatos": candidates}
 
     @app.post("/api/evaluar/{query_id}/{article_id}")
-    def evaluation_judge(query_id: str, article_id: str, evaluador: str,
-                         relevancia: int | None = None):
+    def evaluation_judge(query_id: str, article_id: str, request: Request,
+                         evaluador: str | None = None, relevancia: int | None = None):
         """Guarda el juicio (0, 1 o 2) del evaluador; sin ``relevancia`` lo borra."""
         if article_id not in store.candidates().get(query_id, []):
             return JSONResponse({"error": "no es candidato de esa consulta"}, status_code=404)
         try:
-            store.judge(evaluador, query_id, article_id, relevancia)
+            store.judge(evaluator_of(request, evaluador), query_id, article_id, relevancia)
         except ValueError as exc:
             return JSONResponse({"error": str(exc)}, status_code=400)
         return {"ok": True}
