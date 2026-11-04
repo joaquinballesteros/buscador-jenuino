@@ -1,0 +1,52 @@
+<Input Text>
+```
+# Clase invertida y juez en línea para reducir el abandono en Programación I
+Palabras clave: clase invertida, juez en línea, abandono, primer curso
+Resumen: En este trabajo presentamos la experiencia docente de dos cursos aplicando la clase invertida en la asignatura Programación I de primer curso del Grado en Ingeniería Informática. El alumnado visualizaba vídeos antes de clase y resolvía en el aula problemas de recursividad y manejo de vectores que se corregían automáticamente con un juez en línea. La evaluación continua combinaba estas entregas con una rúbrica de código. Según una encuesta de satisfacción, la motivación aumentó y la tasa de abandono bajó del 32 % al 18 %.
+```
+
+<Output>
+entity{tuple_delimiter}Clase Invertida{tuple_delimiter}metodologia_docente{tuple_delimiter}Metodología en la que el alumnado estudia el material con vídeos antes de clase y dedica el aula a resolver problemas.
+entity{tuple_delimiter}Programación I{tuple_delimiter}contenido_disciplinar{tuple_delimiter}Asignatura introductoria de programación en la que se aplica la clase invertida.
+entity{tuple_delimiter}Recursividad{tuple_delimiter}contenido_disciplinar{tuple_delimiter}Concepto de programación central en los problemas resueltos en el aula.
+entity{tuple_delimiter}Vídeo Docente{tuple_delimiter}herramienta_docente{tuple_delimiter}Material en vídeo que el alumnado visualiza antes de cada clase.
+entity{tuple_delimiter}Juez en Línea{tuple_delimiter}herramienta_docente{tuple_delimiter}Sistema que corrige automáticamente los programas entregados por el alumnado.
+entity{tuple_delimiter}Corrección Automática{tuple_delimiter}evaluacion{tuple_delimiter}Corrección inmediata de los ejercicios de programación mediante un juez en línea.
+entity{tuple_delimiter}Evaluación Continua{tuple_delimiter}evaluacion{tuple_delimiter}Evaluación basada en entregas a lo largo del curso.
+entity{tuple_delimiter}Rúbrica{tuple_delimiter}evaluacion{tuple_delimiter}Rúbrica de código usada junto a las entregas en la evaluación continua.
+entity{tuple_delimiter}Abandono{tuple_delimiter}alumnado{tuple_delimiter}Tasa de abandono de la asignatura, que baja del 32 % al 18 % tras la experiencia.
+entity{tuple_delimiter}Motivación{tuple_delimiter}alumnado{tuple_delimiter}Motivación del alumnado, que aumenta con la nueva metodología.
+entity{tuple_delimiter}Primer Curso{tuple_delimiter}contexto_institucional{tuple_delimiter}Nivel de la titulación en el que se imparte la asignatura.
+relation{tuple_delimiter}Clase Invertida{tuple_delimiter}Programación I{tuple_delimiter}aplicación metodológica{tuple_delimiter}La clase invertida se aplica durante dos cursos en Programación I.
+relation{tuple_delimiter}Vídeo Docente{tuple_delimiter}Clase Invertida{tuple_delimiter}material previo{tuple_delimiter}Los vídeos docentes son el material previo que hace posible la clase invertida.
+relation{tuple_delimiter}Juez en Línea{tuple_delimiter}Corrección Automática{tuple_delimiter}retroalimentación inmediata{tuple_delimiter}El juez en línea realiza la corrección automática de los ejercicios.
+relation{tuple_delimiter}Evaluación Continua{tuple_delimiter}Rúbrica{tuple_delimiter}instrumento de evaluación{tuple_delimiter}La evaluación continua combina las entregas corregidas con una rúbrica de código.
+relation{tuple_delimiter}Clase Invertida{tuple_delimiter}Abandono{tuple_delimiter}reducción del abandono{tuple_delimiter}Con la clase invertida la tasa de abandono baja del 32 % al 18 %.
+relation{tuple_delimiter}Clase Invertida{tuple_delimiter}Motivación{tuple_delimiter}mejora de la motivación{tuple_delimiter}La motivación del alumnado aumenta con la clase invertida.
+{completion_delimiter}
+
+<Input Text>
+```
+# Un laboratorio virtual de redes para la docencia semipresencial
+Resumen: Con la implantación del nuevo plan de estudios, la asignatura Redes de Computadores pasa a impartirse en modalidad semipresencial. Describimos un laboratorio virtual basado en máquinas virtuales en el que los alumnos configuran el encaminamiento IP y un cortafuegos desde casa, trabajando en grupos de tres. Se discuten los objetivos docentes, el temario y la coordinación con otras asignaturas, y se analiza cómo la actividad desarrolla el trabajo en equipo y la resolución de problemas.
+```
+
+<Output>
+entity{tuple_delimiter}Plan de Estudios{tuple_delimiter}contexto_institucional{tuple_delimiter}Nuevo plan de estudios cuya implantación obliga a reorganizar la asignatura.
+entity{tuple_delimiter}Redes de Computadores{tuple_delimiter}contenido_disciplinar{tuple_delimiter}Asignatura sobre redes que pasa a impartirse de forma semipresencial.
+entity{tuple_delimiter}Encaminamiento IP{tuple_delimiter}contenido_disciplinar{tuple_delimiter}Contenido de redes que el alumnado configura en el laboratorio virtual.
+entity{tuple_delimiter}Cortafuegos{tuple_delimiter}contenido_disciplinar{tuple_delimiter}Contenido de seguridad en redes que se practica en el laboratorio virtual.
+entity{tuple_delimiter}Semipresencialidad{tuple_delimiter}modalidad_docente{tuple_delimiter}Modalidad en la que se imparte la asignatura tras el cambio de plan de estudios.
+entity{tuple_delimiter}Laboratorio Virtual{tuple_delimiter}herramienta_docente{tuple_delimiter}Entorno de prácticas accesible desde casa basado en máquinas virtuales.
+entity{tuple_delimiter}Máquina Virtual{tuple_delimiter}herramienta_docente{tuple_delimiter}Tecnología sobre la que se construye el laboratorio virtual.
+entity{tuple_delimiter}Coordinación entre Asignaturas{tuple_delimiter}contexto_institucional{tuple_delimiter}Coordinación de Redes de Computadores con otras asignaturas de la titulación.
+entity{tuple_delimiter}Trabajo en Equipo{tuple_delimiter}competencia{tuple_delimiter}Competencia que se desarrolla al trabajar en grupos de tres.
+entity{tuple_delimiter}Resolución de Problemas{tuple_delimiter}competencia{tuple_delimiter}Competencia que se desarrolla al configurar la red en el laboratorio.
+relation{tuple_delimiter}Plan de Estudios{tuple_delimiter}Semipresencialidad{tuple_delimiter}cambio curricular{tuple_delimiter}La implantación del nuevo plan de estudios lleva la asignatura a la semipresencialidad.
+relation{tuple_delimiter}Laboratorio Virtual{tuple_delimiter}Semipresencialidad{tuple_delimiter}soporte a la modalidad{tuple_delimiter}El laboratorio virtual permite hacer las prácticas desde casa en la modalidad semipresencial.
+relation{tuple_delimiter}Laboratorio Virtual{tuple_delimiter}Máquina Virtual{tuple_delimiter}base tecnológica{tuple_delimiter}El laboratorio virtual se basa en máquinas virtuales.
+relation{tuple_delimiter}Laboratorio Virtual{tuple_delimiter}Encaminamiento IP{tuple_delimiter}práctica de contenidos{tuple_delimiter}En el laboratorio virtual el alumnado configura el encaminamiento IP.
+relation{tuple_delimiter}Redes de Computadores{tuple_delimiter}Cortafuegos{tuple_delimiter}contenido de la asignatura{tuple_delimiter}La configuración de cortafuegos forma parte de las prácticas de Redes de Computadores.
+relation{tuple_delimiter}Laboratorio Virtual{tuple_delimiter}Trabajo en Equipo{tuple_delimiter}desarrollo de competencias{tuple_delimiter}Las prácticas en grupos de tres desarrollan el trabajo en equipo.
+{completion_delimiter}
+

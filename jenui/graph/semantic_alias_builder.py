@@ -56,7 +56,7 @@ class SemanticAliasBuilder:
         self._settings = settings
         self._paths = settings.paths
         self._embeddings = ProviderFactory(settings).embeddings()
-        self._resolver = AliasResolver(None)     # sin mapa previo: lo estamos creando
+        self._resolver = AliasResolver(None, settings.graph.get("alias_canonicos"))  # sin mapa semántico: lo estamos creando
         self._reader = GraphReader(
             settings.paths.graphml_file,
             settings.paths.chunks_kv_file,
@@ -107,7 +107,7 @@ class SemanticAliasBuilder:
         """Agrupa por normalización y elige un representante legible."""
         buckets: dict[str, list[tuple[str, int]]] = {}
         for entity, n_articles in counts.items():
-            buckets.setdefault(self._resolver.normalize(entity), []).append(
+            buckets.setdefault(self._resolver.group_key(entity), []).append(
                 (entity, n_articles)
             )
         return {

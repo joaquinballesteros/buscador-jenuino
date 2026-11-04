@@ -65,6 +65,47 @@ class GraphBuilder:
     def entity_types(self) -> list[str]:
         return self._config.get("entity_types", DEFAULT_ENTITY_TYPES)
 
+    def extraction_guidance(self) -> str | None:
+        """Definiciones, instrucciones y ejemplos de JENUI para el extractor.
+
+        LightRAG solo pasa al LLM los *nombres* de los tipos, y sus ejemplos
+        few-shot (una novela y la bolsa, en inglés) no enseñan nada del dominio.
+        Este bloque ocupa el lugar de esos ejemplos en el prompt: el modelo ve
+        qué significa cada tipo, qué no debe extraer y dos artículos de muestra.
+        Devuelve ``None`` si ``config.json`` no define nada, y entonces se usa
+        el prompt original de LightRAG.
+        """
+        definitions = self._config.get("definiciones_tipos") or {}
+        instructions = self._config.get("instrucciones_extraccion") or []
+        examples_file = self._config.get("ejemplos_extraccion")
+        if not (definitions or instructions or examples_file):
+            return None
+
+        def literal(text: str) -> str:
+            # LightRAG aplica .format() al bloque: las llaves deben ir escapadas
+            return text.replace("{", "{{").replace("}", "}}")
+
+        parts = []
+        if definitions:
+            parts.append("Definición de cada tipo de entidad:")
+            parts += [f"- {name}: {literal(text)}" for name, text in definitions.items()]
+        if instructions:
+            parts.append("\nCriterios de extracción:")
+            parts += [f"- {literal(text)}" for text in instructions]
+        if examples_file:
+            path = self._paths.root / examples_file
+            parts.append("\nEjemplos:\n")
+            parts.append(path.read_text(encoding="utf-8"))
+        return "\n".join(parts)
+
+    def _install_guidance(self) -> None:
+        guidance = self.extraction_guidance()
+        if guidance is None:
+            return
+        from lightrag.prompt import PROMPTS
+
+        PROMPTS["entity_extraction_examples"] = [guidance]
+
     @property
     def default_scope(self) -> str:
         return self._config.get("scope", "meta")
@@ -101,6 +142,7 @@ class GraphBuilder:
         warning = self._manifest.warn_if_llm_changed(self._llm)
         if warning:
             print(warning)
+        self._install_guidance()
 
         rag = LightRAG(
             working_dir=str(self._paths.rag_dir),

@@ -117,7 +117,7 @@ class ConceptCorpusBuilder:
             raise ValueError(f"fuente desconocida: {self.source!r} (usa {SOURCES})")
         aliases = (settings.paths.aliases_file
                    if self._params.get("usar_alias_semanticos", True) else None)
-        self._resolver = AliasResolver(aliases)
+        self._resolver = AliasResolver(aliases, settings.graph.get("alias_canonicos"))
         self._noise = NoiseFilter(self._params.get("patrones_ruido", []),
                                   self._params.get("conceptos_genericos", []))
         self._reader = GraphReader(

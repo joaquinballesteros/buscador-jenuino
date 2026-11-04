@@ -30,7 +30,8 @@ class KnowledgeGraph:
             settings.paths.chunks_kv_file,
             self._filter,
         )
-        self._resolver = AliasResolver(settings.paths.aliases_file)
+        self._resolver = AliasResolver(settings.paths.aliases_file,
+                                       settings.graph.get("alias_canonicos"))
         self._concepts = ConceptIndex(settings.paths)
 
         self.entity_to_articles: dict[str, set[str]] = {}

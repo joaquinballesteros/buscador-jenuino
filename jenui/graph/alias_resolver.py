@@ -31,14 +31,21 @@ class AliasResolver:
 
     1. **Textual** (siempre activa, gratis): normaliza mayúsculas, acentos,
        guiones y puntuación. Une las dos primeras variantes del ejemplo.
-    2. **Semántica** (opcional): aplica el mapa que genera
+    2. **Manual** (``graph.alias_canonicos`` en ``config.json``): equivalencias
+       que los embeddings no garantizan, sobre todo siglas (``EEES`` ↔
+       ``Espacio Europeo de Educación Superior``) y sinónimos en inglés
+       (``Flipped Classroom`` ↔ ``Clase Invertida``).
+    3. **Semántica** (opcional): aplica el mapa que genera
        :class:`~jenui.graph.semantic_alias_builder.SemanticAliasBuilder`
-       comparando embeddings de los nombres. Une la tercera, y casos como
-       ``ABP`` ↔ ``Aprendizaje basado en proyectos``.
+       comparando embeddings de los nombres. Une la tercera variante del
+       ejemplo y plurales como ``Guías Docentes`` ↔ ``Guía Docente``.
     """
 
-    def __init__(self, aliases_path: Path | None = None) -> None:
+    def __init__(self, aliases_path: Path | None = None,
+                 manual: dict[str, str] | None = None) -> None:
         self._aliases_path = aliases_path
+        self._manual = {self.normalize(k): self.normalize(v)
+                        for k, v in (manual or {}).items()}
         self._semantic = self._load_semantic()
 
     def _load_semantic(self) -> dict[str, str]:
@@ -68,8 +75,10 @@ class AliasResolver:
         return re.sub(r"\s+", " ", text).strip()
 
     def group_key(self, entity: str) -> str:
-        """Clave final: normalización textual, redirigida por el mapa semántico."""
+        """Clave final: normalización textual, redirigida por el mapa manual y
+        después por el semántico."""
         key = self.normalize(entity)
+        key = self._manual.get(key, key)
         return self._semantic.get(key, key)
 
     def consolidate(self, entity_to_articles: dict[str, set[str]]) -> ConsolidatedGraph:
