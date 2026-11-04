@@ -7,9 +7,9 @@
       "model": "qwen3.8:27b-q4_K_M"
     },
     "embeddings": {
-      "provider": "ollama",
+      "provider": "openai",
       "model": "bge-m3",
-      "dim": null
+      "dim": 1024
     },
     "ollama": {
       "host": "http://localhost:11434",
