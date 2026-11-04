@@ -32,6 +32,10 @@ VARIANTS = {
     "grafo": {"normalizacion": "ninguna"},
     "minmax": {"normalizacion": "minmax"},
     "rrf": {"normalizacion": "rrf"},
+    # max_articulos_por_entidad (12) se calibró con 254 artículos; con 1920 deja
+    # fuera conceptos como "Brecha de Género" (27) o "ChatGPT" (20)
+    "minmax_lim30": {"normalizacion": "minmax", "max_articulos_por_entidad": 30},
+    "minmax_lim90": {"normalizacion": "minmax", "max_articulos_por_entidad": 90},
 }
 
 
