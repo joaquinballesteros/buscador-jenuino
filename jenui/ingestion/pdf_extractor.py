@@ -50,7 +50,7 @@ class PdfExtractor:
     # ------------------------------------------------------------- heurísticas
     @staticmethod
     def _extract_year(stem: str) -> int | None:
-        match = re.search(r"(20\d{2})", stem)
+        match = re.search(r"((?:19|20)\d{2})", stem)
         return int(match.group(1)) if match else None
 
     @staticmethod
