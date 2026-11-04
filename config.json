@@ -183,7 +183,7 @@
     "max_fraccion_concepto": 0.15,
     "_comentario_topics": "Topics = comunidades (Louvain) del grafo de coocurrencia de conceptos, con peso de Salton. Más 'resolucion' da topics más pequeños y numerosos. Un artículo pertenece a un topic si tiene al menos 'min_conceptos_articulo' de sus conceptos.",
     "min_coocurrencias": 2,
-    "resolucion": 1.0,
+    "resolucion": 3.0,
     "semilla": 42,
     "min_conceptos_topic": 3,
     "min_conceptos_articulo": 2,
