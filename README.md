@@ -136,12 +136,14 @@ python scripts/ingest.py
 # 2. Índice vectorial de texto completo                                (~3-4 min)
 python scripts/build_fulltext.py
 
-# 3. Grafo de conocimiento con LightRAG                                 (horas, en local)
+# 3. Grafo de conocimiento con LightRAG                                 (horas)
 #    Reanudable: puedes cortar con Ctrl-C y relanzarlo; salta lo ya hecho.
-python scripts/build_graph.py
+python scripts/build_graph.py --sin-metadatos
+python scripts/merge_aliases.py                                       # fusión de entidades
+python scripts/build_concepts.py                                      # índice de conceptos
 ```
 
-> **Tiempo del grafo:** con un LLM local la extracción de entidades es lenta, así que el grafo se construye sobre título+resumen+palabras clave (~254 llamadas). El texto completo (`--scope full`) es mucho más lento y rara vez compensa. La web **funciona en cuanto termina el paso 2**; el grafo solo añade la sección "Relacionado por conceptos". Para ver el progreso del paso 3 mientras corre: `python scripts/status.py --watch`.
+> **Tiempo del grafo:** se construye sobre título+resumen+palabras clave (`graph.scope: meta`), una llamada al LLM por artículo: ~1.900. Con `qwen3.8:27b` en una GPU, ~11 s por artículo (~6 h). El texto completo (`--scope full`) es mucho más lento y rara vez compensa. La web **funciona en cuanto termina el paso 2**; el grafo solo añade la sección "Relacionado por conceptos". Para ver el progreso del paso 3 mientras corre: `python scripts/status.py --watch`.
 
 ---
 
@@ -180,10 +182,10 @@ El sistema es **incremental**: solo procesa lo nuevo, sin rehacer todo.
 LLM): la cadena completa, en orden:
 
 ```bash
-python scripts/ingest.py --rebuild          # corpus (aplica el recorte de bibliografía)
-python scripts/build_fulltext.py --rebuild  # índice vectorial            (~13 min)
+python scripts/ingest.py --rebuild          # corpus (recorta bibliografía y repara textos ilegibles)
+python scripts/build_fulltext.py --rebuild  # índice vectorial            (~1 min con GPU, mucho más en CPU)
 rm -rf rag_storage/                         # descarta el grafo anterior
-python scripts/build_graph.py               # grafo de conocimiento       (coste del LLM)
+python scripts/build_graph.py --sin-metadatos  # grafo de conocimiento    (horas)
 python scripts/merge_aliases.py             # consolida entidades         (local)
 python scripts/build_concepts.py            # índice de conceptos         (local)
 ```
@@ -210,12 +212,6 @@ En `config.json` → `ingestion` hay además dos listas explícitas: `excluir`
 comités) y `solo_metadatos` (artículos cuyo PDF oficial es otro documento: se
 quedan con título, autores y BibTeX, sin resumen ni texto).
 
-> **Pendiente para la máquina nueva.** El recorte de bibliografía
-> (`ingestion.quitar_bibliografia`) ya está activo pero solo surte efecto al
-> reconstruir. Se aplicará solo con la cadena de arriba. En una máquina con GPU
-> grande conviene además volver al LLM local (`config.json` →
-> `providers.llm.provider: "ollama"`, un modelo de 14B+), con lo que el grafo
-> sale gratis y con nombres de entidad más consistentes.
 
 ---
 
