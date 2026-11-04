@@ -433,6 +433,7 @@ Si cambias la ontología, reconstruye el grafo (borra `rag_storage/`).
 | `max_articulos_por_entidad` | una entidad en más de N artículos se considera genérica y se ignora | `12` |
 | `corregir_ortografia` | corrige erratas de la consulta con el vocabulario del corpus | `true` |
 | `tipos_entidad_descartados` | **red de seguridad**: tipos que se filtran al leer el grafo | lista de 28 |
+| `patrones_entidad_descartados` | descarta por **nombre** (regex): universidades, escuelas, facultades, departamentos que el LLM clasificó con un tipo válido | 4 patrones |
 
 **Normalización** (`normalizacion`): la similitud de los buenos resultados se
 concentra en unas centésimas (p. ej. 0,66-0,70 en el top-15), mientras que el

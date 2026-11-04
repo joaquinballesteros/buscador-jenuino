@@ -140,6 +140,13 @@
     "_comentario_alias": "Umbral de similitud coseno para fusionar entidades equivalentes (merge_aliases.py). Calibrado con un barrido sobre este corpus: a 0.92 ya fusionaba conceptos distintos (años académicos '2017/2018' con '2016/2017', 'Pearson y Spearman' con 'Spearman'). De 0.94 hacia arriba todas las fusiones revisadas eran correctas. Bajarlo gana muy poca conectividad (+0.5 pp por cada 0.02) a cambio de errores reales.",
     "umbral_alias": 0.95,
     "_comentario_descartados": "Red de seguridad: tipos de entidad que son METADATOS y no relacionan por tema. Se filtran al leer el grafo, por si el LLM ignora la ontología pedida. Se normalizan (minúsculas, sin acentos ni guiones) antes de comparar.",
+    "_comentario_patrones_descartados": "Expresiones regulares sobre el NOMBRE de la entidad (en minúsculas y sin acentos): instituciones que el LLM clasifica con un tipo de la ontología. Sin esto, dos artículos se relacionaban por ser de la misma universidad. ANECA y Campus Virtual no entran a propósito: son temas (acreditación) y herramientas.",
+    "patrones_entidad_descartados": [
+      "^universi(dad|dades|tat|ty|dade)\\b",
+      "^(escuela|escola|facultad|facultat)\\b",
+      "^(departamento|departament|dpto)\\b",
+      "^instituto\\b"
+    ],
     "tipos_entidad_descartados": [
       "person",
       "persona",

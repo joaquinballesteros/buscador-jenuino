@@ -22,9 +22,7 @@ class KnowledgeGraph:
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self._filter = EntityTypeFilter(
-            settings.search.get("tipos_entidad_descartados")
-        )
+        self._filter = EntityTypeFilter.from_settings(settings)
         self._reader = GraphReader(
             settings.paths.graphml_file,
             settings.paths.chunks_kv_file,

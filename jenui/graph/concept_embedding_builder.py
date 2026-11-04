@@ -39,7 +39,7 @@ class ConceptEmbeddingBuilder:
         self._settings = settings
         self._paths = settings.paths
         self._embeddings = ProviderFactory(settings).embeddings()
-        self._filter = EntityTypeFilter(settings.search.get("tipos_entidad_descartados"))
+        self._filter = EntityTypeFilter.from_settings(settings)
 
     def build(self, batch_size: int = 32, verbose: bool = True) -> ConceptBuildReport:
         names, texts = self._read_concepts()
@@ -95,7 +95,7 @@ class ConceptEmbeddingBuilder:
                     entity_type = data.text or ""
                 elif key_desc and data.get("key") == key_desc:
                     description = data.text or ""
-            if self._filter.is_discarded(entity_type):
+            if self._filter.is_discarded(entity_type, name):
                 continue
             names.append(name)
             snippet = (description or "")[:DESC_CHARS]

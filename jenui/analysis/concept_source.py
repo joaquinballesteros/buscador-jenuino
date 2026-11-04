@@ -123,7 +123,7 @@ class ConceptCorpusBuilder:
         self._reader = GraphReader(
             settings.paths.graphml_file,
             settings.paths.chunks_kv_file,
-            EntityTypeFilter(settings.search.get("tipos_entidad_descartados")),
+            EntityTypeFilter.from_settings(settings),
         )
 
     def build(self, articles: list[Article], year_from: int | None = None,

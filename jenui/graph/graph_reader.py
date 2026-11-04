@@ -52,7 +52,7 @@ class GraphReader:
         entity_to_articles: dict[str, set[str]] = defaultdict(set)
         discarded = 0
         for entity, entity_type, chunk_ids in self._nodes():
-            if self._filter.is_discarded(entity_type):
+            if self._filter.is_discarded(entity_type, entity):
                 discarded += 1
                 continue
             for chunk_id in chunk_ids:
@@ -74,7 +74,7 @@ class GraphReader:
         chunks = self._chunks()
         occurrences: dict[str, dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
         for entity, entity_type, chunk_ids in self._nodes():
-            if self._filter.is_discarded(entity_type):
+            if self._filter.is_discarded(entity_type, entity):
                 continue
             for chunk_id in chunk_ids:
                 chunk = chunks.get(chunk_id)
