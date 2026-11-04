@@ -124,10 +124,7 @@ class Searcher:
                 max_concepts=config.get("max_conceptos_semilla", 20),
             )
 
-        ranker = Ranker(
-            text_weight=config.get("peso_texto", 0.85),
-            graph_weight=config.get("peso_grafo", 0.15),
-        )
+        ranker = Ranker.from_config(config)
         ranked = ranker.rank(text_hits, graph_weights, top_k)
 
         results = [
@@ -216,17 +213,19 @@ class Searcher:
         # --- etapa 3: ranker ---
         w_texto = config.get("peso_texto", 0.85)
         w_grafo = config.get("peso_grafo", 0.15)
-        max_boost = max(graph_weights.values()) if graph_weights else 1.0
-        ranker = Ranker(text_weight=w_texto, graph_weight=w_grafo)
+        normalizacion = config.get("normalizacion", "ninguna")
+        ranker = Ranker.from_config(config)
         ranked = ranker.rank(text_hits, graph_weights, top_k)
+        signals = ranker.signals(text_hits, graph_weights)
         rank_stage = []
         for pos, (aid, final) in enumerate(ranked, 1):
             if aid not in self.articles:
                 continue
             ts = text_hits[aid].score if aid in text_hits else 0.0
-            gnorm = graph_weights.get(aid, 0.0) / max_boost
+            tnorm, gnorm = signals.get(aid, (0.0, 0.0))
             rank_stage.append({**self._brief(aid), "rank": pos,
                                "text_score": round(ts, 4),
+                               "text_norm": round(tnorm, 4),
                                "graph_raw": round(graph_weights.get(aid, 0.0), 4),
                                "graph_norm": round(gnorm, 4),
                                "final": round(final, 4)})
@@ -237,7 +236,8 @@ class Searcher:
                            "corrected": correction.corrected, "applied": applied},
             "used_query": used_query,
             "pooling": pooling,
-            "weights": {"texto": w_texto, "grafo": w_grafo},
+            "weights": {"texto": w_texto, "grafo": w_grafo,
+                        "normalizacion": normalizacion},
             "text_retriever": text_stage,
             "graph": graph_stage,
             "ranker": rank_stage,

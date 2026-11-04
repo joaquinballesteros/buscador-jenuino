@@ -139,19 +139,24 @@ function stageGraph(g){
 }
 
 function stageRanker(d){
-  const wt=d.weights.texto, wg=d.weights.grafo;
+  const wt=d.weights.texto, wg=d.weights.grafo, norm=d.weights.normalizacion||"ninguna";
+  const raw = norm==="ninguna";
+  const desc = {
+    ninguna: "score final = peso_texto · similitud de texto + peso_grafo · empuje del grafo (el empuje del grafo se normaliza a [0,1]).",
+    minmax: "score final = (peso_texto · texto + peso_grafo · grafo) / (peso_texto + peso_grafo), con la similitud de texto reescalada a [0,1] entre los mejores candidatos y el empuje del grafo normalizado a [0,1]. Entre paréntesis, la similitud bruta.",
+    rrf: "score final = (peso_texto · texto + peso_grafo · grafo) / (peso_texto + peso_grafo), donde cada señal es (k+1)/(k+posición) en su propio ranking (Reciprocal Rank Fusion; el primero vale 1). Entre paréntesis, la similitud bruta.",
+  }[norm];
   const rows = d.ranker.map(r=>`
     <tr>
       <td class="num">${r.rank}</td>
       <td class="num"><b>${r.final.toFixed(3)}</b></td>
-      <td class="arith">${wt}·<b>${r.text_score.toFixed(3)}</b> + ${wg}·<b>${r.graph_norm.toFixed(3)}</b></td>
+      <td class="arith">${raw ? "" : "("}${wt}·<b>${(raw ? r.text_score : r.text_norm).toFixed(3)}</b>${raw ? "" : ` <span class="note">(${r.text_score.toFixed(3)})</span>`} + ${wg}·<b>${r.graph_norm.toFixed(3)}</b>${raw ? "" : `) / ${+(wt+wg).toFixed(2)}`}</td>
       <td>${esc(r.title)}${year(r)}</td>
     </tr>`).join("");
   return `<div class="stage">
     <h2>3 · Ranker (combinación final)</h2>
-    <div class="desc">score final = peso_texto · similitud de texto + peso_grafo · empuje del grafo
-      (el empuje del grafo se normaliza a [0,1]).</div>
-    <div class="meta-line">peso_texto = <b>${wt}</b> · peso_grafo = <b>${wg}</b></div>
+    <div class="desc">${desc}</div>
+    <div class="meta-line">peso_texto = <b>${wt}</b> · peso_grafo = <b>${wg}</b> · normalización = <b>${norm}</b></div>
     <table><thead><tr><th>#</th><th>score final</th><th>desglose</th><th>artículo</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
 }
