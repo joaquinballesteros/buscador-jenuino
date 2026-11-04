@@ -9,8 +9,14 @@ killed=0
 
 # 1) por puerto (lo más fiable): quien escuche en el 8000
 pids=$(lsof -ti tcp:"$PORT" -s tcp:LISTEN 2>/dev/null || true)
-# 2) por si acaso, por nombre de proceso
-pids="$pids $(pgrep -f 'server:app' 2>/dev/null || true) $(pgrep -f '[s]erver.py' 2>/dev/null || true)"
+# 2) por si acaso, el servidor de ESTE proyecto por su comando. El patrón va
+#    anclado al inicio y se exige que el directorio de trabajo sea el proyecto:
+#    buscar "server.py" a secas también mataba el servidor Python del editor y
+#    cualquier shell cuyo comando lo mencionara.
+root=$(pwd -P)
+for pid in $(pgrep -f '^(\S*/)?python[0-9.]* +(scripts/)?server\.py( |$)|^(\S*/)?(python[0-9.]* +-m +)?uvicorn +server:app' 2>/dev/null); do
+  [[ "$(readlink -f "/proc/$pid/cwd" 2>/dev/null)" == "$root"* ]] && pids="$pids $pid"
+done
 
 pids=$(echo "$pids" | tr ' ' '\n' | grep -E '^[0-9]+$' | sort -u)
 
