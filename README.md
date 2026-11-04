@@ -163,7 +163,7 @@ El sistema es **incremental**: solo procesa lo nuevo, sin rehacer todo.
 2. **Reprocesa solo lo nuevo:**
    ```bash
    python scripts/ingest.py            # añade al corpus solo los PDFs que faltan
-   python scripts/build_fulltext.py    # embebe solo los artículos nuevos y los añade
+   python scripts/build_fulltext.py    # embebe los artículos nuevos y los que hayan cambiado
    python scripts/build_graph.py       # LightRAG procesa solo los documentos nuevos
    ```
    Cada paso te dirá cuántos artículos hay ya y cuántos son nuevos. Si no hay
@@ -187,6 +187,28 @@ python scripts/build_graph.py               # grafo de conocimiento       (coste
 python scripts/merge_aliases.py             # consolida entidades         (local)
 python scripts/build_concepts.py            # índice de conceptos         (local)
 ```
+
+### Textos ilegibles y entradas que no son artículos
+
+Algunos PDFs de las actas (sobre todo 2000-2009) tienen fuentes mal
+codificadas: el texto sale **cifrado** (`/HFFLRQHV` en vez de `Lecciones`), con
+**letras duplicadas** (`siisstteemmaa`) o con **caracteres sustituidos**
+(`Me#oras en la asi/natura`), y el resumen de la ficha de aenui.org, que sale
+del mismo PDF, igual. La ingesta lo repara sola al final: mide la legibilidad
+como la fracción de palabras que existen en el vocabulario del propio corpus,
+invierte el cifrado, deshace la sustitución aprendiendo la tabla del título y,
+si nada de eso basta, toma el resumen del cuerpo del artículo. Para aplicarlo a
+un corpus ya construido, sin releer los PDFs:
+
+```bash
+python scripts/ingest.py --reparar       # repara resúmenes y textos del corpus
+python scripts/build_fulltext.py         # re-embebe solo los artículos que cambiaron
+```
+
+En `config.json` → `ingestion` hay además dos listas explícitas: `excluir`
+(entradas del listado oficial que no son artículos, como las páginas de
+comités) y `solo_metadatos` (artículos cuyo PDF oficial es otro documento: se
+quedan con título, autores y BibTeX, sin resumen ni texto).
 
 > **Pendiente para la máquina nueva.** El recorte de bibliografía
 > (`ingestion.quitar_bibliografia`) ya está activo pero solo surte efecto al
@@ -324,6 +346,13 @@ pruebas puntuales.
 | `embeddings.dim` | fuerza la dimensión (`null` = la del modelo) | `null` |
 | `ollama.host` | URL de Ollama | `http://localhost:11434` |
 | `ollama.num_ctx` | contexto del LLM local | `16384` |
+| `openai.extra_body` | campos extra en cada petición del proveedor `openai` | `{"think": false}` |
+
+El proveedor `openai` sirve para cualquier API compatible: el destino sale de
+`OPENAI_BASE_URL` y la clave de `OPENAI_API_KEY` (en `.env`). Así se usa, por
+ejemplo, un modelo servido por Ollama detrás de LiteLLM en otra máquina;
+`{"think": false}` evita que los modelos Qwen3 razonen en cada llamada, que
+multiplica el tiempo.
 
 Dimensiones conocidas: `bge-m3` 1024, `nomic-embed-text` 768,
 `text-embedding-3-small` 1536, `text-embedding-3-large` 3072. Si usas otro
@@ -335,6 +364,10 @@ modelo, indícalo en `embeddings.dim`.
 |---|---|---|
 | `scope` | `meta` (título+resumen+keywords) o `full` (texto completo) | `full` |
 | `entity_types` | **ontología del dominio: qué debe extraer el LLM** | ver abajo |
+| `definiciones_tipos` | definición y ejemplos de cada tipo, para el prompt | ver abajo |
+| `instrucciones_extraccion` | criterios: qué extraer, cuánto detalle, qué no extraer | ver abajo |
+| `ejemplos_extraccion` | fichero con ejemplos few-shot de JENUI | `prompts/ejemplos_extraccion.txt` |
+| `alias_canonicos` | equivalencias variante → forma canónica (siglas, inglés) | ver abajo |
 | `chunk_token_size` | tamaño de chunk; mayor = menos llamadas al LLM = más rápido | `1800` |
 | `chunk_overlap_token_size` | solape entre chunks | `100` |
 | `entity_extract_max_gleaning` | pasadas extra para captar entidades omitidas (`0` ≈ mitad de tiempo) | `1` |
@@ -345,23 +378,43 @@ modelo, indícalo en `embeddings.dim`.
 LightRAG (`Person`, `Organization`, `Location`, …) hacía que el **49 % de las
 entidades fuesen autores, departamentos y universidades**: metadatos que no
 relacionan artículos por tema (medido: de 549 entidades, el 94 % aparecía en un
-solo artículo, o sea que no conectaban nada). La ontología actual pide solo
-conceptos docentes:
+solo artículo, o sea que no conectaban nada).
+
+La ontología actual (**v1.2**, noviembre de 2026) se derivó de **preguntas de
+competencia** sobre la evolución temporal de JENUI (qué metodologías emergen,
+en qué contenidos se aplican, cómo cambian la evaluación, las herramientas, los
+problemas del alumnado, el contexto institucional y las competencias) y se
+comprobó contra las palabras clave de los autores (solo el 0,6 % no encajaba en
+ningún tipo) y una extracción abierta por décadas:
 
 ```json
 "entity_types": [
-  "metodologia_docente",     // ABP, aula invertida, gamificación
-  "herramienta",             // Moodle, GitHub Classroom, SonarQube
-  "tecnologia",              // Python, SQL, Docker
-  "asignatura",              // Bases de Datos, Ingeniería del Software
-  "competencia",             // trabajo en equipo, pensamiento crítico
-  "instrumento_evaluacion",  // rúbrica, encuesta, portafolio
-  "concepto_educativo"       // motivación, abandono, evaluación continua
+  "metodologia_docente",     // Clase Invertida, Aprendizaje Basado en Proyectos
+  "contenido_disciplinar",   // Recursividad, Bases de Datos, Sistemas Operativos
+  "evaluacion",              // Rúbrica, Evaluación por Pares, Corrección Automática
+  "herramienta_docente",     // Moodle, Kahoot, ChatGPT, Juez en Línea
+  "alumnado",                // Abandono, Motivación, Brecha de Género
+  "contexto_institucional",  // Espacio Europeo de Educación Superior, Plan de Estudios
+  "modalidad_docente",       // Docencia en Línea, Semipresencialidad, MOOC
+  "competencia"              // Trabajo en Equipo, Pensamiento Computacional
 ]
 ```
 
-Adáptala a tu corpus: si indexas otro dominio, cambia estos tipos y reconstruye
-el grafo (borra `rag_storage/`).
+LightRAG solo pasa al LLM los **nombres** de los tipos, y sus ejemplos few-shot
+(una novela y la bolsa, en inglés) no enseñan nada del dominio. Por eso
+`definiciones_tipos`, `instrucciones_extraccion` y `ejemplos_extraccion`
+sustituyen esos ejemplos en el prompt. Sin esas claves se usa el prompt
+original. En un piloto de 72 artículos frente a la ontología anterior, los
+metadatos extraídos bajaron del 12 % al 0,2 % y los vecinos por grafo de cada
+artículo pasaron de 4 a 8 (mediana).
+
+`alias_canonicos` une lo que la fusión semántica por embeddings no garantiza:
+siglas (`EEES` → `Espacio Europeo de Educación Superior`, `TFG`, `IA`) y
+sinónimos en inglés (`Flipped Classroom` → `Clase Invertida`). `ABP` se deja
+fuera a propósito: en JENUI es tanto aprendizaje basado en proyectos como en
+problemas.
+
+Si cambias la ontología, reconstruye el grafo (borra `rag_storage/`).
 
 ### `search` — ranking
 
@@ -373,6 +426,9 @@ el grafo (borra `rag_storage/`).
 | `pooling_alpha` | peso del máximo en el híbrido: `α·max + (1−α)·media` | `0.5` |
 | `peso_texto` | peso de la similitud vectorial | `0.85` |
 | `peso_grafo` | peso del empuje por conceptos compartidos | `0.3` |
+| `normalizacion` | escala común de texto y grafo: `ninguna` / `minmax` / `rrf` | `ninguna` |
+| `candidatos_normalizacion` | mejores candidatos por texto entre los que se reescala (`minmax`) | `50` |
+| `rrf_k` | constante de Reciprocal Rank Fusion (`rrf`) | `60` |
 | `n_semillas` | cuántos resultados top siembran la expansión por grafo | `3` |
 | `umbral_semilla` | similitud mínima para que un artículo sea semilla (evita que uno genérico arrastre conceptos ajenos) | `0.5` |
 | `umbral_concepto` | suelo absoluto de afinidad concepto↔consulta (espacio centrado) | `0.2` |
@@ -381,6 +437,13 @@ el grafo (borra `rag_storage/`).
 | `max_articulos_por_entidad` | una entidad en más de N artículos se considera genérica y se ignora | `12` |
 | `corregir_ortografia` | corrige erratas de la consulta con el vocabulario del corpus | `true` |
 | `tipos_entidad_descartados` | **red de seguridad**: tipos que se filtran al leer el grafo | lista de 28 |
+
+**Normalización** (`normalizacion`): la similitud de los buenos resultados se
+concentra en unas centésimas (p. ej. 0,66-0,70 en el top-15), mientras que el
+empuje del grafo se normaliza a 0-1. Sin normalizar, el texto apenas separa y
+el grafo decide el orden aunque pese menos. `minmax` reescala la similitud a
+0-1 entre los mejores candidatos; `rrf` combina posiciones en vez de
+puntuaciones. En ambos el score final queda en 0-1.
 
 **Pooling** (`pooling*`): cómo se resume un artículo troceado en un solo score.
 `max` toma el mejor fragmento (máximo recall, pero un artículo que menciona el
@@ -503,8 +566,9 @@ diseño por capas, los invariantes del sistema y cómo extenderlo, y
 
 LightRAG fusiona entidades por nombre **exacto**, así que un mismo concepto se
 parte (`Investigación-acción` / `Investigación-Acción` / `ABP`) y deja de
-conectar artículos. El buscador une las variantes tipográficas por su cuenta;
-para las semánticas:
+conectar artículos. El buscador une por su cuenta las variantes tipográficas y
+las de `graph.alias_canonicos` (siglas y sinónimos en inglés); para las
+semánticas:
 
 ```bash
 python scripts/merge_aliases.py --dry-run    # revisa qué fusionaría
