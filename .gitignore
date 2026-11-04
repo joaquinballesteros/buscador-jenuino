@@ -262,3 +262,6 @@ rag_storage_meta/*
 !rag_storage_meta/kv_store_entity_chunks.json
 !rag_storage_meta/kv_store_relation_chunks.json
 !rag_storage_meta/entity_aliases.json
+
+# Copias de resolución de conflictos de git
+*.orig
