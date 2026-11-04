@@ -65,6 +65,22 @@ Cada artículo se compone de dos fuentes, por fiabilidad:
 `ensen~anza` → `enseñanza`). Se aplica a **todo** el texto, porque el resumen de
 las fichas recientes también los arrastra.
 
+**Textos ilegibles.** Algunos PDFs (sobre todo 2000-2009) tienen fuentes mal
+codificadas y su texto, y el resumen de su ficha, salen cifrados (desplazados 29
+posiciones), con letras duplicadas, sustituidas o perdidas. `TextQuality` mide
+la legibilidad como la fracción de palabras del **vocabulario del propio
+corpus** (las que aparecen en ≥8 artículos; la distribución es bimodal: limpio
+>0,85, roto <0,75), invierte el cifrado línea a línea, deshace la sustitución
+aprendiendo la tabla del título limpio de la ficha y, si nada basta, toma el
+resumen del cuerpo. Necesita el vocabulario de todo el corpus, así que
+`CorpusBuilder` lo aplica **al final** de la ingesta, no por artículo;
+`ingest.py --reparar` lo aplica a un corpus ya construido. Sobre el corpus de
+2026 repuso 198 resúmenes y 5 cuerpos; quedan 2 irrecuperables.
+
+Dos listas explícitas en `config.json` → `ingestion`: `excluir` (entradas del
+listado oficial que no son artículos: tríptico de 1995, páginas de comités) y
+`solo_metadatos` (artículos cuyo PDF oficial es otro documento).
+
 El corpus es JSON Lines para poder **añadir** sin reescribir.
 
 ### 3.2 Indexado — `scripts/build_fulltext.py` y `scripts/build_graph.py`
@@ -79,6 +95,15 @@ Dos índices independientes, con costes muy distintos:
 | Aporta | parecido con la consulta | conceptos compartidos entre artículos |
 
 Están separados precisamente por esa asimetría: si fueran un solo proceso, añadir un artículo exigiría pagar el camino caro solo para hacerlo buscable. Así es buscable en segundos y el grafo lo enriquece después.
+
+**El índice vectorial también refresca lo que cambia.** `VectorIndexBuilder`
+vuelve a trocear cada artículo (sin embeddings) y compara sus fragmentos con
+los guardados: si difieren —un resumen reparado, por ejemplo— re-embebe solo
+ese artículo; y quita los que ya no están en el corpus.
+
+**Un solo grafo** (`graph.scope: meta`, construido con `--sin-metadatos`) sirve
+al buscador y al análisis temporal: título + resumen + palabras clave, una
+llamada al LLM por artículo, sin autores ni año en el texto.
 
 **Chunking con contexto.** `TextChunker` no embebe el fragmento del cuerpo tal
 cual: le antepone `Article.chunk_context` (título + palabras clave) antes de
@@ -105,7 +130,20 @@ consulta
    │     └─ filtra los conceptos de las semillas por afinidad con la consulta:
    │        suelo absoluto → corte relativo (media+factor·desv) → tope top-N
    └─ Ranker  →  peso_texto · similitud + peso_grafo · conceptos compartidos
+         (normalizacion: ninguna | minmax | rrf, para que los pesos sean comparables)
 ```
+
+**Normalización.** La similitud de los buenos resultados se concentra en unas
+centésimas (0,66-0,70 en un top-15 típico) mientras que el empuje del grafo va
+de 0 a 1: sin normalizar, con `peso_grafo` 0,3 el grafo decide el orden con 5-10
+veces más fuerza que el texto. `minmax` reescala la similitud entre los
+`candidatos_normalizacion` mejores; `rrf` combina posiciones. El valor por
+defecto sigue siendo `ninguna` hasta elegir con el banco de evaluación (§10).
+
+**Corrector ortográfico.** Dos vocabularios: los candidatos salen de títulos,
+resúmenes y palabras clave, pero una palabra se da por válida si aparece en el
+cuerpo de ≥3 artículos (si no, "delegar" se "corregía" a "desplegar"). Gana el
+candidato más parecido, comparado sin tildes; la frecuencia solo desempata.
 
 El grafo pesa poco a propósito: reordena y rescata artículos afines, pero no
 manda sobre la consulta del usuario.
@@ -148,6 +186,33 @@ calidad.** Con la ontología genérica de LightRAG (`Person`, `Organization`,
 universidades, y el 94 % aparecía en un solo artículo: no conectaban nada.
 Cambiarla obliga a reconstruir el grafo.
 
+LightRAG solo pasa al LLM los **nombres** de los tipos y trae ejemplos few-shot
+ajenos al dominio. `GraphBuilder.extraction_guidance` sustituye
+`PROMPTS["entity_extraction_examples"]` por definiciones
+(`graph.definiciones_tipos`), criterios (`graph.instrucciones_extraccion`) y
+ejemplos de JENUI (`prompts/ejemplos_extraccion.txt`).
+
+**Cómo se hizo la v1.2** (método híbrido: Noy & McGuinness / NeOn + inducción
+desde datos, al estilo EDC):
+
+1. *Preguntas de competencia* sobre la evolución temporal de JENUI (metodologías,
+   contenidos, evaluación, herramientas, alumnado, contexto, competencias;
+   la de "experiencia frente a investigación" es propiedad del artículo y queda
+   fuera del grafo).
+2. *Reutilización*: dimensiones de la clasificación de Simon y áreas de ACM
+   CS2023 para el contenido disciplinar.
+3. *Term typing* de las 428 palabras clave de autores con ≥2 artículos: solo el
+   0,6 % no encajaba en ningún tipo; las ambigüedades decidieron fusiones
+   (asignatura → contenido) y tipos nuevos (`modalidad_docente`).
+4. *Extracción abierta* sin tipos sobre 84 artículos por décadas: ≤1,1 % sin
+   tipo en todas las épocas.
+5. *Piloto A/B* sobre 72 artículos nuevos: metadatos extraídos 12 % → 0,2 %;
+   vecinos medianos por artículo 4 → 8; sin copias de los ejemplos del prompt.
+
+Para repetir el proceso con otra ontología, el piloto es lo que decide: un
+grafo pequeño por variante en carpetas aparte (`--rag-dir`) y comparar ruido,
+conexión y fidelidad.
+
 ### Ajustar el ranking
 
 `config.json` → `search`, sin reconstruir nada: pesos texto/grafo, *pooling* de
@@ -175,14 +240,17 @@ parte y deja de conectar artículos. Medido en una sola pasada de este corpus:
 `Investigación-acción`, `Investigación-Acción` y `Formación en
 Investigación-Acción` como tres nodos.
 
-Se resuelve en dos capas:
+Se resuelve en tres capas:
 
 | Capa | Dónde | Coste | Une |
 |---|---|---|---|
 | Textual | `AliasResolver`, siempre activa | gratis | mayúsculas, acentos, guiones |
-| Semántica | `SemanticAliasBuilder`, opcional | embeddings locales | `ABP` ↔ `Aprendizaje basado en proyectos` |
+| Manual | `graph.alias_canonicos` | gratis | siglas e inglés: `EEES` ↔ `Espacio Europeo de Educación Superior`, `Flipped Classroom` ↔ `Clase Invertida` |
+| Semántica | `SemanticAliasBuilder`, opcional | embeddings | plurales y variantes: `Guías Docentes` ↔ `Guía Docente` |
 
-La segunda genera `data/entity_aliases.json`, que la primera aplica al cargar.
+La semántica genera `data/entity_aliases.json`, que `AliasResolver` aplica al
+cargar después de la manual. `ABP` queda fuera de la manual a propósito: en
+JENUI es tanto aprendizaje basado en proyectos como en problemas.
 
 ## 7. Recarga en caliente
 
@@ -209,6 +277,7 @@ GraphML, y recarga solo lo que cambió. Consecuencias prácticas:
 | `ingestion/bibtex_builder.py` | `BibtexBuilder` | BibTeX de reserva |
 | `ingestion/corpus_repository.py` | `CorpusRepository` | persistencia JSONL |
 | `ingestion/bibliography_stripper.py` | `BibliographyStripper` | recorta la bibliografía del cuerpo |
+| `ingestion/text_quality.py` | `TextQuality` | detecta y repara texto ilegible |
 | `ingestion/corpus_builder.py` | `CorpusBuilder` | orquesta la ingesta |
 | `indexing/text_chunker.py` | `TextChunker` | troceado con solape |
 | `indexing/vector_index.py` | `VectorIndex` | vectores y consulta |
@@ -233,6 +302,8 @@ GraphML, y recarga solo lo que cambió. Consecuencias prácticas:
 | `analysis/citation_links.py` | `CitationNetwork` | validación por citas internas |
 | `analysis/topic_analysis.py` | `TopicAnalysis` | orquesta el análisis |
 | `analysis/report_writer.py` | `ReportWriter` | CSV, JSON e informe HTML |
+| `evaluation/judgment_store.py` | `JudgmentStore` | consultas, candidatos y juicios por evaluador |
+| `evaluation/metrics.py` | — | nDCG, recall, judged@k, alfa de Krippendorff |
 
 ## 9. Análisis temporal de topics
 
@@ -248,10 +319,12 @@ alias ────────┘   (ruido, hubs)            (Louvain)        (s
 referencias_jenui.csv ─> CitationNetwork ───────────────────────────────────┘
 ```
 
-**Grafo propio.** Se construye en otro almacén (`Paths.with_rag_dir`, opción
-`--rag-dir` de los scripts) con `scope meta` y sin autores ni año
-(`GraphBuilder.build(metadata=False)`). Cada almacén tiene su propio
-`entity_aliases.json`, así que fusionar alias en uno no pisa el otro.
+**Grafo.** Por defecto lee el mismo grafo que el buscador (`analysis.grafo_dir:
+rag_storage`), construido con `scope meta` y sin autores ni año
+(`GraphBuilder.build(metadata=False)`). Se puede apuntar a otro almacén
+(`Paths.with_rag_dir`, opción `--rag-dir` de los scripts); cada almacén
+alternativo tiene su propio `entity_aliases.json`, así que fusionar alias en uno
+no pisa el otro.
 
 **Conceptos** (`ConceptCorpusBuilder`). Une entidades del grafo y palabras
 clave por la clave de `AliasResolver`. `NoiseFilter` descarta por nombre lo
@@ -289,3 +362,31 @@ concepto que aún no existía no indica ruptura).
 **Citas** (`CitationNetwork`). Por topic: citas internas, artículos más
 citados y fracción de los posteriores a los tres primeros años que citan a
 alguno de esos pioneros. Solo cuentan los artículos con referencias extraídas.
+
+## 10. Evaluación de la búsqueda
+
+Los parámetros del ranking (`peso_grafo`, `normalizacion`,
+`max_articulos_por_entidad`…) se eligen con juicios de relevancia, no a ojo.
+
+```
+evaluacion/consultas.csv ─> eval_pool.py ─> candidatos.json ─> /evaluar ─> juicios/<evaluador>.csv
+   (28 consultas con          (unión del top-10 de     (orden         (0/1/2,        │
+    criterio de relevancia)    varias configuraciones)  aleatorio)     a ciegas)      v
+                                                                    eval_metrics.py ─> resultados.json
+```
+
+- **Consultas**: repartidas por los tipos de la ontología y por estilos (palabras
+  clave, pregunta natural, sigla, inglés), cada una con su criterio de
+  relevancia.
+- **Pooling** (`scripts/eval_pool.py`): por consulta, la unión de los mejores
+  resultados de cada configuración, barajada. Es acumulativo: lo nuevo se
+  añade al final sin descolocar lo ya juzgado.
+- **Juicios** (`/evaluar`): cada evaluador en su propio fichero y sin ver los de
+  los demás. El nombre lo declara la página; detrás de un proxy con
+  autenticación básica manda la cabecera `X-Remote-User`.
+- **Referencia**: la mediana de los evaluadores (`JudgmentStore.consensus`).
+- **Métricas** (`scripts/eval_metrics.py`): nDCG@10 con ganancia 2^g−1,
+  recall@10 (mediana ≥1) y judged@10 (fracción del top-10 con juicio: si baja,
+  hay que ampliar el pool antes de comparar). Acuerdo con el alfa de
+  Krippendorff ordinal, global y por consulta; una consulta con poco acuerdo
+  suele tener un criterio ambiguo.
