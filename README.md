@@ -603,3 +603,35 @@ construye el resultado** paso a paso:
    resultado final.
 
 Útil para entender el ranking y para calibrar los parámetros de `config.json`.
+
+## Evaluar la búsqueda
+
+Los parámetros del ranking (`peso_grafo`, `normalizacion`,
+`max_articulos_por_entidad`…) se eligen con **juicios de relevancia** de varias
+personas, no a ojo. Todo vive en [`evaluacion/`](evaluacion/):
+
+| Fichero | Qué es |
+|---|---|
+| `consultas.csv` | 28 consultas, cada una con su **criterio de relevancia** |
+| `candidatos.json` | por consulta, los artículos a juzgar (generado) |
+| `juicios/<evaluador>.csv` | los juicios de cada persona: 0, 1 o 2 |
+| `resultados.json` | métricas por configuración y por consulta (generado) |
+
+```bash
+python scripts/eval_pool.py        # 1. reúne los candidatos de varias configuraciones
+# 2. los evaluadores juzgan en http://<servidor>/evaluar
+python scripts/eval_metrics.py     # 3. acuerdo entre evaluadores y nDCG@10 / recall@10
+python scripts/eval_metrics.py --barrido peso_grafo=0,0.15,0.3,0.5 --fijo normalizacion=minmax
+```
+
+En `/evaluar` cada persona escribe su nombre (si dos escriben el mismo, cuentan
+como la misma) y juzga **a ciegas**, sin ver los juicios de los demás: **2** si el
+artículo cumple el criterio de lleno, **1** si lo cumple en parte, **0** si no.
+Se maneja con el teclado (flechas, `0`/`1`/`2`, `n` para la siguiente consulta)
+y se puede dejar a medias.
+
+El juicio de referencia es la **mediana** de los evaluadores. `eval_metrics.py`
+informa del acuerdo (alfa de Krippendorff ordinal; ≥0,8 fiable) y de
+**judged@10**, la fracción del top-10 que tiene juicio: si una configuración
+trae muchos artículos sin juzgar, sus métricas no son comparables, así que
+vuelve a lanzar `eval_pool.py` (es acumulativo) y juzga lo nuevo.
