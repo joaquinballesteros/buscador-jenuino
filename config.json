@@ -31,7 +31,8 @@
   },
   "graph": {
     "_comentario": "Construcción del grafo de conocimiento (LightRAG).",
-    "scope": "full",
+    "_comentario_scope": "Un solo grafo para el buscador y el análisis temporal: título + resumen + palabras clave (una llamada por artículo). Constrúyelo sin autores ni año (--sin-metadatos) para que el año no acabe como entidad.",
+    "scope": "meta",
     "language": "Spanish",
     "chunk_token_size": 1800,
     "chunk_overlap_token_size": 100,
@@ -171,8 +172,8 @@
     ]
   },
   "analysis": {
-    "_comentario": "Análisis temporal de topics (scripts/topic_evolution.py). No afecta al buscador. Lee un grafo aparte, construido con: python scripts/build_graph.py --scope meta --sin-metadatos --rag-dir rag_storage_meta",
-    "grafo_dir": "rag_storage_meta",
+    "_comentario": "Análisis temporal de topics (scripts/topic_evolution.py). No afecta al buscador. Lee el mismo grafo que el buscador (graph.scope: meta, construido con --sin-metadatos); grafo_dir permite apuntar a otro almacén.",
+    "grafo_dir": "rag_storage",
     "_comentario_fuente": "De dónde salen los conceptos de cada artículo: 'grafo' (entidades de LightRAG), 'keywords' (palabras clave de los autores; no necesita grafo) o 'ambos'.",
     "fuente": "ambos",
     "usar_alias_semanticos": true,
