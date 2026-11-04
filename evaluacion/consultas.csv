@@ -1,0 +1,29 @@
+id,consulta,tipo,estilo,criterio_relevancia
+Q01,aprendizaje basado en proyectos,metodologia_docente,palabras clave,Aplica o analiza el aprendizaje basado en proyectos en una asignatura o varias o en una titulacion
+Q02,ABP,metodologia_docente,sigla,Aplica o analiza el aprendizaje basado en proyectos o en problemas (las dos lecturas de la sigla cuentan)
+Q03,flipped classroom,metodologia_docente,inglés,Aplica o analiza la clase invertida
+Q04,gamificación en asignaturas de programación,metodologia_docente,palabras clave,Usa gamificación (puntos retos juegos) en una asignatura de programación
+Q05,aprendizaje-servicio en informática,metodologia_docente,palabras clave,Proyectos de aprendizaje-servicio o con impacto social realizados por estudiantes de informática
+Q07,aprendizaje cooperativo en primer curso,metodologia_docente,palabras clave,Aplica aprendizaje cooperativo o colaborativo en asignaturas de primer curso
+Q08,cómo enseñar recursividad,contenido_disciplinar,pregunta natural,Propone o evalúa una forma de enseñar la recursividad
+Q09,prácticas de sistemas operativos,contenido_disciplinar,palabras clave,Diseño o experiencia de prácticas de una asignatura de sistemas operativos
+Q10,enseñar bases de datos con proyectos reales,contenido_disciplinar,pregunta natural,Docencia de bases de datos apoyada en proyectos o casos realistas
+Q11,docencia de ciberseguridad,contenido_disciplinar,palabras clave,Enseñanza de seguridad informática o ciberseguridad (asignatura laboratorio retos tipo CTF)
+Q12,evaluación por pares,evaluacion,palabras clave,El alumnado evalúa o corrige el trabajo de sus compañeros
+Q13,corrección automática de ejercicios de programación,evaluacion,palabras clave,Corrección o retroalimentación automática de programas (jueces en línea tests automáticos)
+Q14,rúbricas para evaluar trabajos en grupo,evaluacion,palabras clave,Usa rúbricas para evaluar trabajos o proyectos realizados en grupo
+Q15,evaluación continua frente a examen final,evaluacion,pregunta natural,Compara o analiza la evaluación continua respecto a un examen final
+Q16,uso de IA en clase,herramienta_docente,palabras clave,Uso o efecto de ChatGPT u otra IA generativa en la docencia o en el aprendizaje
+Q17,plataformas web de apoyo a la docencia,herramienta_docente,palabras clave,Plataformas o sistemas web (Moodle u otros) para apoyar la docencia o la gestión de asignaturas
+Q18,Arduino y robótica para motivar,herramienta_docente,palabras clave,Usa Arduino o robots como recurso docente
+Q19,abandono en primer curso,alumnado,palabras clave,Analiza o intenta reducir el abandono de estudiantes en primer curso o en los estudios
+Q20,por qué hay tan pocas mujeres en informática,alumnado,pregunta natural,Brecha de género o acciones para atraer y retener a mujeres en informática
+Q21,plagio en prácticas de programación,alumnado,palabras clave,Detección o prevención de copias y plagio en trabajos o prácticas
+Q22,cómo conseguir que los alumnos vengan a clase y participen,alumnado,pregunta natural,Analiza el absentismo o propone formas de aumentar la asistencia y participación del alumnado
+Q23,adaptación al EEES,contexto_institucional,sigla,Adaptación de asignaturas o titulaciones al Espacio Europeo de Educación Superior (Bolonia)
+Q24,docencia online durante la pandemia,modalidad_docente,palabras clave,Docencia o evaluación en línea forzada por la COVID-19
+Q25,tutorización y evaluación del trabajo fin de grado,contexto_institucional,palabras clave,Organización tutorización o evaluación de trabajos fin de grado (o de carrera o máster)
+Q26,desarrollar la comunicación oral de los estudiantes,competencia,pregunta natural,Trabaja o evalúa la comunicación oral o las presentaciones del alumnado
+Q27,pensamiento computacional,competencia,palabras clave,Desarrollo o evaluación del pensamiento computacional
+Q28,sostenibilidad en el currículo de informática,competencia,palabras clave,Introduce la sostenibilidad o el compromiso social en asignaturas o planes de informática
+Q29,reducir la descarga cognitiva en el estudiantado universitario,alumnado,palabras clave,Analiza o intenta evitar que el alumnado delegue el razonamiento en herramientas como la IA generativa
