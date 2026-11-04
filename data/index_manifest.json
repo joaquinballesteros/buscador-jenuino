@@ -1,6 +1,6 @@
 {
   "embed": {
-    "provider": "ollama",
+    "provider": "openai",
     "model": "bge-m3",
     "dim": 1024
   },
