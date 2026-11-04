@@ -6,6 +6,7 @@ Ejecutar desde la raíz del proyecto:
 
     python scripts/ingest.py              # solo lo nuevo
     python scripts/ingest.py --rebuild    # reprocesa todo desde cero
+    python scripts/ingest.py --reparar    # repara resúmenes y textos ilegibles del corpus
 
 La lógica vive en jenui.ingestion.CorpusBuilder.
 """
@@ -26,15 +27,24 @@ def main() -> None:
                         help="reprocesa TODOS los PDFs (por defecto solo los nuevos)")
     parser.add_argument("--limit", type=int, default=None,
                         help="procesa como mucho N artículos nuevos")
+    parser.add_argument("--reparar", action="store_true",
+                        help="solo repara los textos ilegibles del corpus ya construido "
+                             "(fuentes mal codificadas), sin releer los PDFs")
     args = parser.parse_args()
 
     builder = CorpusBuilder(Settings.load())
+    if args.reparar:
+        repaired = builder.repair_existing()
+        print(f"Artículos reparados: {repaired}")
+        return
     if args.rebuild:
         print("Modo --rebuild: se reconstruye el corpus completo.")
     report = builder.build(rebuild=args.rebuild, limit=args.limit)
 
     print(f"\nPDFs: {report.total_pdfs}  |  ya en corpus: {report.already_indexed}  "
           f"|  procesados ahora: {report.processed}")
+    if report.repaired:
+        print(f"Textos ilegibles reparados: {report.repaired}")
     if report.failed:
         print(f"Fallaron {len(report.failed)}: {', '.join(report.failed)}")
     if not report.processed:

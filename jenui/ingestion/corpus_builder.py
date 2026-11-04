@@ -13,6 +13,7 @@ from jenui.ingestion.bibtex_builder import BibtexBuilder
 from jenui.ingestion.corpus_repository import CorpusRepository
 from jenui.ingestion.ficha_parser import FichaParser
 from jenui.ingestion.pdf_extractor import PdfExtractor
+from jenui.ingestion.text_quality import TextQuality
 
 
 @dataclass
@@ -23,6 +24,7 @@ class IngestReport:
     already_indexed: int
     processed: int
     failed: list[str]
+    repaired: int = 0
 
     @property
     def pending(self) -> int:
@@ -40,6 +42,11 @@ class CorpusBuilder:
 
     1. el PDF, que aporta el texto completo y unos metadatos aproximados;
     2. la ficha HTML, que sobrescribe título, autores, resumen y BibTeX.
+
+    Al final se reparan los textos ilegibles por fuentes mal codificadas (ver
+    :class:`~jenui.ingestion.text_quality.TextQuality`). Este paso necesita el
+    vocabulario de todo el corpus, por eso va después de extraer y no dentro
+    de cada artículo.
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -53,6 +60,8 @@ class CorpusBuilder:
             "ingestion.quitar_bibliografia", True
         )
         self._bibliography = BibliographyStripper()
+        self._excluded = set(settings.get("ingestion.excluir", []))
+        self._metadata_only = set(settings.get("ingestion.solo_metadatos", []))
 
     @property
     def repository(self) -> CorpusRepository:
@@ -60,7 +69,8 @@ class CorpusBuilder:
 
     def build(self, rebuild: bool = False, limit: int | None = None,
               verbose: bool = True) -> IngestReport:
-        pdfs = sorted(self._paths.pdf_dir.glob("*.pdf"))
+        pdfs = [p for p in sorted(self._paths.pdf_dir.glob("*.pdf"))
+                if p.stem not in self._excluded]
         if not pdfs:
             raise SystemExit(f"No hay PDFs en {self._paths.pdf_dir}")
 
@@ -87,7 +97,10 @@ class CorpusBuilder:
                 print(f"[{index:3}/{len(pending)}] ERROR {path.name}: {exc}",
                       file=sys.stderr)
 
+        repaired = 0
         if processed:
+            reference = processed if rebuild else self._repository.load_all() + processed
+            repaired = self._repair(processed, reference)
             self._repository.append(processed)
 
         return IngestReport(
@@ -95,12 +108,49 @@ class CorpusBuilder:
             already_indexed=len(done),
             processed=len(processed),
             failed=failed,
+            repaired=repaired,
         )
+
+    def repair_existing(self) -> int:
+        """Aplica al corpus ya construido, sin releer los PDFs, la reparación de
+        textos ilegibles y las listas ``excluir`` / ``solo_metadatos``."""
+        loaded = self._repository.load_all()
+        articles = [a for a in loaded if a.id not in self._excluded]
+        repaired = len(loaded) - len(articles)
+        for article in articles:
+            if article.id in self._metadata_only and (article.abstract or article.text):
+                article.abstract, article.text = "", ""
+                repaired += 1
+        repaired += self._repair(articles, articles)
+        if repaired:
+            self._repository.replace(articles)
+        return repaired
+
+    @staticmethod
+    def _repair(articles: list[Article], reference: list[Article]) -> int:
+        """Sustituye resumen y cuerpo ilegibles por su mejor variante.
+
+        Devuelve cuántos artículos cambian.
+        """
+        quality = TextQuality.from_articles(reference)
+        changed = 0
+        for article in articles:
+            if not (article.abstract or article.text):
+                continue
+            abstract = quality.best_abstract(article.abstract, article.text, article.title)
+            body = quality.best_body(article.text)
+            if abstract != (article.abstract or "") or body != (article.text or ""):
+                article.abstract, article.text = abstract, body
+                changed += 1
+        return changed
 
     # ------------------------------------------------------------------ interno
     def _build_article(self, path: Path) -> Article:
         article = self._extractor.extract(path)
         self._merge_ficha(article)
+        if article.id in self._metadata_only:
+            # el PDF oficial es otro documento: nada de lo extraído es del artículo
+            article.abstract, article.text = "", ""
         article.keywords = self._clean_keywords(article.keywords)
         if self._strip_bibliography:
             # el cuerpo pierde las referencias; título/resumen/keywords no se tocan

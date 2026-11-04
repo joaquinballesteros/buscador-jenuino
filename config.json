@@ -23,7 +23,11 @@
   "ingestion": {
     "_comentario": "Ingesta de PDFs.",
     "_comentario_biblio": "Quita la sección de bibliografía del cuerpo antes de indexar: evita que los títulos citados se conviertan en entidades del grafo. No afecta a título/resumen/palabras clave.",
-    "quitar_bibliografia": true
+    "quitar_bibliografia": true,
+    "_comentario_excluir": "Entradas del listado oficial que no son artículos (páginas preliminares de las actas): no entran en el corpus.",
+    "excluir": ["JENUI_1995_002", "JENUI_2016_002", "JENUI_2019_002", "JENUI_2020_002"],
+    "_comentario_solo_metadatos": "Artículos cuyo PDF oficial en aenui.org es otro documento (la página de comités): se conservan título, autores y BibTeX, sin resumen ni texto.",
+    "solo_metadatos": ["JENUI_2017_007", "JENUI_2018_005"]
   },
   "graph": {
     "_comentario": "Construcción del grafo de conocimiento (LightRAG).",
