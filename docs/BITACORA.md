@@ -96,12 +96,47 @@ Además: definiciones, criterios y dos ejemplos de JENUI en el prompt
   (~75 tokens/s con 1, 2, 4 u 8 simultáneas). `OLLAMA_NUM_PARALLEL=4` en el
   servidor podría multiplicar el rendimiento del grafo.
 
+### Grafo completo (noche del 4 al 5)
+
+- **Construcción**: 1920/1920 artículos en 389 min, sin fallos. 7.772 nodos,
+  13.101 aristas; `other`/`unknown` 0,4 %. Todos los artículos tienen
+  entidades (mediana 8). Ficheros versionados: 26 MB (el grafo anterior,
+  ~250 MB).
+- **Alias**: 228 fusiones semánticas; revisadas las menos seguras, solo una
+  discutible (*Programación de Microprocesadores* → *de Microcontroladores*).
+- **Análisis temporal**: ahora cubre **1920 artículos de 1997 a 2026** (antes
+  812, de 2011 a 2026). Resolución de Louvain subida a 3.0: a 1.0 mezclaba la IA
+  como asignatura (1997) con la IA generativa (2023). Resultado: 38 topics;
+  emergentes consolidados como IA generativa (2023), clase invertida (2016),
+  gamificación y brecha de género (2014), integración continua y Scrum
+  (2012); en declive, EEES (pico 2007) o wikis (2009).
+- **Referencias**: regeneradas para todo el corpus (antes solo 2021-2025):
+  18.453 referencias, 2.175 citas internas identificadas.
+- **Candidatos para evaluar**: 343 (12 por consulta), de 6 configuraciones,
+  incluidas `max_articulos_por_entidad` 30 y 90.
+
+### Fallos encontrados y corregidos esta noche
+
+| Fallo | Efecto | Arreglo |
+|---|---|---|
+| **El análisis temporal no era reproducible** | misma configuración y semilla daban 36, 38 o 40 topics: el grafo de coocurrencia se recorría en el orden de un `set`, que cambia en cada proceso | recorrido ordenado; comprobado con `PYTHONHASHSEED` 1, 2 y 3: salidas idénticas |
+| Corrector ortográfico | "delegar" → "desplegar"; "univesitario" → "universitaria"; "evaluasion" → "evaluation" | vocabulario del cuerpo para dar palabras por buenas; gana el candidato más parecido sin tildes |
+| Nombres de entidad mostrados | "Primero Curso", "Evaluación Continuada" en "Relacionado por" | gana la forma curada o la más usada, no la más larga |
+| Instituciones como conceptos | dos artículos se relacionaban por ser de la misma universidad | `search.patrones_entidad_descartados` (121 nodos) |
+| `max_articulos_por_entidad` = 12 | con 1920 artículos ignora *Brecha de Género* (27), *ChatGPT* (20), *Aprendizaje Basado en Problemas* (20) | **sin cambiar**: se decide con el banco (configuraciones 30 y 90 ya en el pool) |
+
+Señal cualitativa antes de evaluar: para la consulta *ABP*, solo texto pone
+primero un artículo que no trata de ABP; con grafo + `minmax` + límite 30, los
+5 primeros son de ABP.
+
 ### Pendiente
 
-1. Que los evaluadores juzguen en `http://150.214.108.91/evaluar` y luego
-   `python scripts/eval_metrics.py` (y barridos) para fijar `peso_grafo`,
-   `normalizacion` y `max_articulos_por_entidad` (este último se calibró con 254
-   artículos; ahora hay 1920).
+1. **Pasar el enlace a los evaluadores**: `http://150.214.108.91/evaluar`
+   (todo listo: 28 consultas, 343 candidatos). Después
+   `python scripts/eval_metrics.py` y barridos, por ejemplo
+   `--barrido max_articulos_por_entidad=12,30,90 peso_grafo=0.15,0.3,0.5 --fijo normalizacion=minmax`,
+   para fijar los parámetros en `config.json`.
 2. Fusionar la rama `ontologia-v1.2` en `main`.
 3. Opcional: `OLLAMA_NUM_PARALLEL` en el servidor; revisar la configuración
-   *tutor-socratico* de nginx.
+   *tutor-socratico* de nginx; filtrar en el buscador conceptos genéricos
+   frecuentes (*Ingeniería Informática*, *Evaluación*) como ya hace el análisis.
