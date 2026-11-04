@@ -24,6 +24,7 @@ class IndexReport:
     new_chunks: int
     total_chunks: int
     seconds: float
+    refreshed: int = 0
 
 
 class VectorIndexBuilder:
@@ -33,7 +34,10 @@ class VectorIndexBuilder:
     coste de API aunque el grafo se construya por servicio externo.
 
     Es **incremental**: embebe únicamente los artículos que aún no están en el
-    índice y los añade a los existentes.
+    índice y los añade a los existentes. También vuelve a embeber los que han
+    **cambiado** desde que se indexaron (p. ej. un resumen reparado por
+    ``ingest.py --reparar``): se detectan comparando sus fragmentos actuales
+    con los guardados, que no cuesta embeddings.
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -61,16 +65,21 @@ class VectorIndexBuilder:
             )
             self._guard_dimension(index)
 
+        orphans = index.indexed_article_ids() - {a.id for a in articles}
+        index.remove_articles(orphans)       # ya no están en el corpus
         indexed = index.indexed_article_ids()
-        pending = [a for a in articles if a.id not in indexed]
+        stale = self._changed(articles, index)
+        pending = [a for a in articles if a.id not in indexed or a.id in stale]
         if verbose:
             print(f"Embeddings: {self._embeddings.name}/{self._embeddings.model} "
                   f"(dim {self._embeddings.dim})")
             print(f"Artículos: {len(articles)}  |  ya indexados: {len(indexed)}  "
-                  f"|  nuevos: {len(pending)}")
+                  f"|  nuevos: {len(pending) - len(stale)}  |  cambiados: {len(stale)}")
 
         started = time.time()
         if not pending:
+            if orphans:
+                index.save(self._paths.vectors_file, self._paths.vectors_meta_file)
             return IndexReport(len(articles), len(indexed), 0, 0, index.n_chunks, 0.0)
 
         meta, texts = self._prepare(pending)
@@ -78,6 +87,7 @@ class VectorIndexBuilder:
             print(f"{len(pending)} artículos -> {len(texts)} fragmentos nuevos...")
         vectors = self._embed_all(texts, verbose=verbose)
 
+        index.remove_articles(stale)
         index.extend(vectors, meta)
         index.save(self._paths.vectors_file, self._paths.vectors_meta_file)
         self._manifest.save(embeddings=self._embeddings)
@@ -85,13 +95,23 @@ class VectorIndexBuilder:
         return IndexReport(
             total_articles=len(articles),
             already_indexed=len(indexed),
-            new_articles=len(pending),
+            new_articles=len(pending) - len(stale),
             new_chunks=len(texts),
             total_chunks=index.n_chunks,
             seconds=time.time() - started,
+            refreshed=len(stale),
         )
 
     # ------------------------------------------------------------------ interno
+    def _changed(self, articles: list[Article], index: VectorIndex) -> set[str]:
+        """Artículos indexados cuyos fragmentos ya no coinciden con el corpus."""
+        stored = index.chunk_texts()
+        return {
+            a.id for a in articles
+            if a.id in stored
+            and [display[:400] for display, _ in self._chunker.split_article(a)] != stored[a.id]
+        }
+
     def _prepare(self, articles: list[Article]) -> tuple[list[dict], list[str]]:
         meta: list[dict] = []
         texts: list[str] = []

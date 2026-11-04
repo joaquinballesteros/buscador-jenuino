@@ -50,6 +50,21 @@ class VectorIndex:
     def indexed_article_ids(self) -> set[str]:
         return {m["article_id"] for m in self.meta}
 
+    def chunk_texts(self) -> dict[str, list[str]]:
+        """Texto mostrado de cada fragmento, por artículo y en orden."""
+        texts: dict[str, list[str]] = {}
+        for m in self.meta:
+            texts.setdefault(m["article_id"], []).append(m.get("text", ""))
+        return texts
+
+    def remove_articles(self, article_ids: set[str]) -> None:
+        """Quita todos los fragmentos de esos artículos."""
+        if not article_ids or self.vectors is None:
+            return
+        keep = [i for i, m in enumerate(self.meta) if m["article_id"] not in article_ids]
+        self.vectors = self.vectors[keep]
+        self.meta = [self.meta[i] for i in keep]
+
     # ------------------------------------------------------------ persistencia
     @classmethod
     def load(cls, vectors_path: Path, meta_path: Path) -> "VectorIndex":

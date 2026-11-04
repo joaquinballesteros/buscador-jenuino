@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Índice vectorial de texto completo (solo embeddings, sin LLM).
 
-Incremental: embebe únicamente los artículos que aún no están indexados.
+Incremental: embebe los artículos que aún no están indexados y los que han
+cambiado desde que se indexaron (p. ej. tras scripts/ingest.py --reparar).
 Ejecutar desde la raíz del proyecto:
 
     python scripts/build_fulltext.py             # solo lo nuevo
@@ -33,11 +34,12 @@ def main() -> None:
         raise SystemExit("El corpus está vacío. Ejecuta scripts/ingest.py primero.")
 
     report = VectorIndexBuilder(settings).build(articles, rebuild=args.rebuild)
-    if not report.new_articles:
+    if not report.new_articles and not report.refreshed:
         print("Nada nuevo que embeber.")
         return
     print(f"\nHecho en {report.seconds / 60:.1f} min. "
-          f"{report.new_chunks} fragmentos nuevos, "
+          f"{report.new_chunks} fragmentos nuevos ({report.refreshed} artículos "
+          f"actualizados), "
           f"{report.total_chunks} en total.")
 
 
