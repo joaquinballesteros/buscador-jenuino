@@ -56,6 +56,23 @@
         border-radius:10px;font-size:.78rem;color:#c8ccd4;overflow-x:auto;white-space:pre;
         font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
   .empty{text-align:center;color:var(--muted);margin-top:40px}
+  .timeline{background:var(--card);border:1px solid var(--border);border-radius:14px;
+            padding:12px 14px 6px;margin:4px 0 16px}
+  .tl-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .tl-sum{font-size:.84rem;color:var(--muted)}
+  .tl-sum b{color:var(--fg)}
+  .tl-mode{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .tl-mode button{font-size:.74rem;padding:4px 10px;border:0;border-radius:0;background:transparent;
+                  color:var(--muted);font-weight:500;cursor:pointer}
+  .tl-mode button.on{background:var(--chip);color:var(--fg)}
+  .timeline svg{display:block;width:100%;height:auto;margin-top:6px}
+  .timeline .bar{fill:var(--accent);cursor:pointer}
+  .timeline .bar.dim{opacity:.3}
+  .timeline .bar:hover,.timeline .bar:focus{fill:#9cc2ff;outline:none}
+  .timeline .axis{fill:var(--muted);font-size:10px}
+  .timeline .grid{stroke:var(--border);stroke-width:1}
+  .tl-filter{font-size:.82rem;color:var(--muted);margin:0 0 12px}
+  .tl-filter a{color:var(--accent);text-decoration:none}
   .spinner{display:none;text-align:center;margin-top:30px;color:var(--muted)}
 </style>
 </head>
@@ -77,11 +94,17 @@
 <script>
 const $ = s => document.querySelector(s);
 const results = $("#results"), spinner = $("#spinner");
+// totales del corpus por año (para la prevalencia) y estado de la vista actual
+let corpus = {min: null, max: null, total: {}};
+let current = null, yearFilter = null;
+let chartMode = "n";
+try { chartMode = localStorage.getItem("jenuino.grafica") || "n"; } catch(e) {}
 
 async function status(){
   try{
     const s = await (await fetch("/api/status")).json();
     if (s.anio_min && s.anio_max) $("#years").textContent = ` (${s.anio_min}–${s.anio_max})`;
+    corpus = {min: s.anio_min, max: s.anio_max, total: s.articulos_por_anio || {}};
     $("#status").innerHTML =
       `${s.articulos} artículos · ` +
       `<span class="dot ${s.fulltext_listo?'ok':'no'}"></span>búsqueda ${s.fulltext_listo?'lista':'no lista'} · ` +
@@ -103,6 +126,65 @@ function kwChips(keywords){
 }
 
 function render(data){
+  current = data; yearFilter = null;
+  draw();
+}
+
+// Gráfica de barras: resultados por año, de la primera a la última edición del
+// corpus (los años sin resultados, a cero). En modo "%" cada barra es la
+// fracción de los artículos de ese año que salen en la búsqueda: el número de
+// artículos por edición varía mucho (de ~40 a ~95), así que el recuento solo
+// puede engañar al comparar épocas.
+function timeline(rows){
+  if(!corpus.min || !corpus.max || !rows.length) return "";
+  const years = []; for(let y = corpus.min; y <= corpus.max; y++) years.push(y);
+  const count = {}; rows.forEach(r => { if(r.year) count[r.year] = (count[r.year]||0) + 1; });
+  const value = y => chartMode === "pct"
+    ? (corpus.total[y] ? 100 * (count[y]||0) / corpus.total[y] : 0) : (count[y]||0);
+  const vmax = Math.max(...years.map(value), chartMode === "pct" ? 1 : 1);
+  const W = 640, H = 150, ml = 30, mr = 6, mt = 8, mb = 22;
+  const step = (W - ml - mr) / years.length, bw = Math.max(2, step * 0.72);
+  const y0 = H - mb, scale = (H - mt - mb) / vmax;
+  const fmt = v => chartMode === "pct" ? v.toFixed(v < 10 ? 1 : 0) + " %" : String(Math.round(v));
+  let bars = "", labels = "";
+  years.forEach((y, i) => {
+    const x = ml + i * step + (step - bw) / 2, v = value(y), n = count[y] || 0;
+    if (n) {
+      const h = Math.max(1.5, v * scale), tot = corpus.total[y] || 0;
+      const tip = `${y}: ${n} artículo${n > 1 ? "s" : ""}` + (tot ? ` (${(100*n/tot).toFixed(1)} % de los ${tot} de ese año)` : "");
+      bars += `<rect class="bar${yearFilter && yearFilter !== y ? " dim" : ""}" data-year="${y}" tabindex="0"
+        x="${x.toFixed(1)}" y="${(y0 - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}"
+        aria-label="${tip}"><title>${tip}</title></rect>`;
+    }
+    // etiquetas cada 5 años, más la primera y la última edición (sin las de cada
+    // 5 años que quedarían pegadas a ellas: 2025 junto a 2026)
+    const edge = y === corpus.min || y === corpus.max;
+    const nearEdge = Math.abs(y - corpus.min) < 3 || Math.abs(y - corpus.max) < 3;
+    if (edge || (y % 5 === 0 && !nearEdge))
+      labels += `<text class="axis" x="${(ml + i*step + step/2).toFixed(1)}" y="${H - 6}" text-anchor="middle">${y}</text>`;
+  });
+  const grid = `<line class="grid" x1="${ml}" x2="${W - mr}" y1="${y0}" y2="${y0}"/>
+    <line class="grid" x1="${ml}" x2="${W - mr}" y1="${mt}" y2="${mt}" stroke-dasharray="3 3"/>
+    <text class="axis" x="${ml - 4}" y="${mt + 4}" text-anchor="end">${fmt(vmax)}</text>
+    <text class="axis" x="${ml - 4}" y="${y0}" text-anchor="end">0</text>`;
+  // resumen: rango, mediana y peso de los últimos cinco años
+  const ys = rows.map(r => r.year).filter(Boolean).sort((a, b) => a - b);
+  const median = ys[Math.floor((ys.length - 1) / 2)];
+  const recentFrom = corpus.max - 4, recent = ys.filter(y => y >= recentFrom).length;
+  const sum = `<b>${rows.length}</b> artículo${rows.length > 1 ? "s" : ""} entre <b>${ys[0]}</b> y <b>${ys[ys.length-1]}</b>
+    · mediana <b>${median}</b> · <b>${recent}</b> en los últimos 5 años (${recentFrom}–${corpus.max})`;
+  return `<div class="timeline">
+    <div class="tl-head"><div class="tl-sum">${sum}</div>
+      <div class="tl-mode" role="group" aria-label="Escala de la gráfica">
+        <button data-mode="n" class="${chartMode === "n" ? "on" : ""}">Nº de artículos</button>
+        <button data-mode="pct" class="${chartMode === "pct" ? "on" : ""}">% del año</button>
+      </div></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Resultados por año de edición">${grid}${bars}${labels}</svg>
+  </div>`;
+}
+
+function draw(){
+  const data = current;
   if(data.error){ results.innerHTML = `<div class="empty">${esc(data.error)}</div>`; return; }
   // aviso de corrección ortográfica, con opción de buscar el texto tal cual
   const fix = data.corregido ? `<div class="fix">Mostrando resultados para
@@ -111,12 +193,38 @@ function render(data){
   const warn = data.aviso ? `<div class="warn">⚠️ <b>Similitud baja</b> (la del mejor resultado es
       ${data.aviso.similitud_maxima.toFixed(2)}). Es probable que en las JENUI no haya artículos sobre
       este tema: estos son los más cercanos, pero revísalos con cautela.</div>` : "";
-  if(!data.results.length){ results.innerHTML = fix + warn + `<div class="empty">Sin resultados.</div>`; return; }
-  results.innerHTML = fix + warn + data.results.map(r => `
+  if(!data.results.length){ results.innerHTML = fix + warn + `<div class="empty">Sin resultados.</div>`; bind(); return; }
+  const rows = yearFilter ? data.results.filter(r => r.year === yearFilter) : data.results;
+  const filter = yearFilter ? `<div class="tl-filter">Mostrando los <b>${rows.length}</b> de ${yearFilter}
+      · <a href="#" id="allyears">ver los ${data.results.length}</a></div>` : "";
+  results.innerHTML = fix + warn + timeline(data.results) + filter + rows.map(card).join("");
+  bind();
+}
+
+// eventos que hay que volver a enganchar cada vez que se redibuja
+function bind(){
+  const raw = document.getElementById("raw");
+  if(raw) raw.onclick = e => { e.preventDefault(); buscar(false); };  // buscar tal cual
+  const all = document.getElementById("allyears");
+  if(all) all.onclick = e => { e.preventDefault(); yearFilter = null; draw(); };
+  results.querySelectorAll(".tl-mode button").forEach(b => b.onclick = () => {
+    chartMode = b.dataset.mode;
+    try { localStorage.setItem("jenuino.grafica", chartMode); } catch(e) {}
+    draw();
+  });
+  results.querySelectorAll(".timeline .bar").forEach(bar => {
+    const pick = () => { const y = +bar.dataset.year; yearFilter = yearFilter === y ? null : y; draw(); };
+    bar.onclick = pick;
+    bar.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); pick(); } };
+  });
+}
+
+function card(r){
+  return `
     <div class="card">
       <span class="score" title="Similitud semántica (coseno) entre tu consulta y el artículo: es el valor real, no un porcentaje relativo. Los resultados se ordenan por esta similitud más un pequeño bonus si el artículo comparte conceptos del grafo con el tema.">similitud ${r.text_score.toFixed(2)}</span>
       <h3><a href="${r.pdf}" target="_blank">${esc(r.title)}</a></h3>
-      <div class="meta">${esc(r.authors)}${r.year? ' · JENUI '+r.year:''}${r.category? ' · '+esc(r.category):''}</div>
+      <div class="meta">${esc(r.authors)}${r.year? ' · JENUI '+r.year:''}${r.category && !/^[-–—\s]*$/.test(r.category) ? ' · '+esc(r.category):''}</div>
       <div class="abstract">${esc(r.abstract)}</div>
       ${r.shared_concepts && r.shared_concepts.length ?
         `<div class="rel">🔗 Relacionado por: <b>${r.shared_concepts.map(esc).join(', ')}</b></div>`:''}
@@ -127,19 +235,18 @@ function render(data){
         <button class="btn2" onclick="copyBib('${r.id}', this)">📋 Copiar cita</button>`:''}
       </div>
       ${r.bibtex ? `<pre class="bibtex" id="bib-${r.id}">${esc(r.bibtex)}</pre>`:''}
-    </div>`).join("");
+    </div>`;
 }
 
 async function buscar(corregir=true){
   const q = $("#q").value.trim();
   if(q.length<2) return;
+  try { history.replaceState(null, "", "?q=" + encodeURIComponent(q)); } catch(e) {}
   results.innerHTML=""; spinner.style.display="block"; $("#go").disabled=true;
   try{
     const url = "/api/search?q="+encodeURIComponent(q)+(corregir?"":"&corregir=false");
     const data = await (await fetch(url)).json();
     render(data);
-    const raw = document.getElementById("raw");
-    if(raw) raw.onclick = e => { e.preventDefault(); buscar(false); };  // buscar tal cual
   }catch(e){ results.innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
   spinner.style.display="none"; $("#go").disabled=false;
 }
@@ -160,9 +267,16 @@ async function copyBib(id, btn){
   }
 }
 
-$("#go").onclick = buscar;
+$("#go").onclick = () => buscar();
 $("#q").addEventListener("keydown", e => { if(e.key==="Enter") buscar(); });
-status(); setInterval(status, 15000);
+setInterval(status, 15000);
+// ?q=... abre directamente esa búsqueda (enlaces compartibles); los totales por
+// año del corpus se cargan antes, porque la gráfica los necesita
+(async () => {
+  await status();
+  const q = new URLSearchParams(location.search).get("q");
+  if (q) { $("#q").value = q; buscar(); }
+})();
 </script>
 </body>
 </html>

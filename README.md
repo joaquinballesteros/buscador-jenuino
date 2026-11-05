@@ -77,6 +77,8 @@ Abre <http://127.0.0.1:8000>, busca (p. ej. *"gamificación en programación"*) 
 Cada tarjeta muestra, de arriba abajo:
 
 - **Similitud** (arriba a la derecha) — similitud semántica real (coseno) entre tu consulta y el artículo. No es un porcentaje relativo: los resultados se ordenan por esta similitud más un pequeño bonus si el artículo comparte conceptos del grafo con el tema, y la lista se corta donde los artículos dejan de destacar estadísticamente sobre los no relevantes (ver [`corte`](#search--ranking)).
+- **Gráfica por año** *(sobre la lista)* — cuántos de los resultados son de cada edición, de 1997 a 2026, con un resumen (rango, año mediano y cuántos en los últimos 5 años) para ver si un tema es reciente. El botón **% del año** muestra la fracción de los artículos de cada edición, porque el número de artículos por edición varía mucho (de ~40 a ~95). Al pulsar una barra, la lista muestra solo ese año.
+- **Enlace a la búsqueda** — la dirección de la página incluye la consulta (`?q=...`), así que se puede copiar y compartir.
 - **Aviso de similitud baja** *(franja amarilla, sobre la lista)* — aparece cuando ni el mejor resultado se parece de verdad a tu consulta: probablemente las JENUI no tratan ese tema. Los resultados se muestran igualmente, pero conviene leerlos con cautela.
 - **Título** — enlaza al PDF.
 - **Autores · JENUI año · categoría** — metadatos, en gris.

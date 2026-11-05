@@ -1,6 +1,8 @@
 """Motor de búsqueda."""
 from __future__ import annotations
 
+from collections import Counter
+
 from jenui.config.settings import Settings
 from jenui.domain.search_result import SearchResult
 from jenui.graph.knowledge_graph import KnowledgeGraph
@@ -79,6 +81,8 @@ class Searcher:
             "articulos": len(self.articles),
             "anio_min": min(years) if years else None,
             "anio_max": max(years) if years else None,
+            # para la gráfica temporal de la portada (prevalencia = resultados / total del año)
+            "articulos_por_anio": {str(y): n for y, n in sorted(Counter(years).items())},
             "chunks": self.index.n_chunks,
             "fulltext_listo": self.index.is_ready,
             "grafo_listo": self.graph.is_ready,

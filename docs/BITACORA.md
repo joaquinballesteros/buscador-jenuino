@@ -6,6 +6,26 @@ en el [README](../README.md).
 
 ---
 
+## 2026-11-05 · Gráfica temporal de los resultados
+
+Propuesta del usuario: una gráfica de barras con los resultados por año (eje X
+de 1997 a 2026, años sin resultados a cero) encima de la lista, para ver si un
+tema es reciente. Añadido:
+
+- **Modo "% del año"** además del recuento: el número de artículos por edición
+  va de ~40 a ~95, así que el recuento puede sugerir un declive que solo es un
+  año con menos artículos (es la prevalencia del análisis de topics).
+- **Resumen**: rango de años, año mediano y cuántos en los últimos 5 años.
+- **Pulsar una barra filtra la lista** por ese año (otra vez, la restaura).
+- `/api/status` devuelve `articulos_por_anio`; la página acepta `?q=` (enlaces
+  compartibles) y actualiza la dirección al buscar.
+- De paso: se ocultaba mal la categoría vacía ("· ---") de algunas tarjetas.
+
+Ejemplos: "gamificación", 16 artículos entre 2015 y 2026 (mediana 2019);
+"ABP", 84 entre 2000 y 2026, con máximo en 2021 (~17 % de ese año).
+
+---
+
 ## 2026-11-05 · Aviso de similitud baja en lugar de ocultar resultados
 
 "bocadillos de chorizo" devolvía 8 resultados: la sorpresa es relativa a cada
