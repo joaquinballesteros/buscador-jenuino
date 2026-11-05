@@ -73,8 +73,11 @@ class Searcher:
     # ------------------------------------------------------------------- estado
     def status(self) -> dict:
         self.refresh_if_changed()
+        years = [a.year for a in self.articles.values() if a.year]
         return {
             "articulos": len(self.articles),
+            "anio_min": min(years) if years else None,
+            "anio_max": max(years) if years else None,
             "chunks": self.index.n_chunks,
             "fulltext_listo": self.index.is_ready,
             "grafo_listo": self.graph.is_ready,

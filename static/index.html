@@ -59,7 +59,7 @@
 <body>
 <header>
   <h1>Buscador <span>JENUINO</span></h1>
-  <div class="sub">Búsqueda semántica sobre los artículos de las JENUI (2021–2026) · GraphRAG en local</div>
+  <div class="sub">Búsqueda semántica sobre los artículos de las JENUI<span id="years"></span> · GraphRAG en local</div>
 </header>
 <div class="wrap">
   <div class="searchbar">
@@ -78,6 +78,7 @@ const results = $("#results"), spinner = $("#spinner");
 async function status(){
   try{
     const s = await (await fetch("/api/status")).json();
+    if (s.anio_min && s.anio_max) $("#years").textContent = ` (${s.anio_min}–${s.anio_max})`;
     $("#status").innerHTML =
       `${s.articulos} artículos · ` +
       `<span class="dot ${s.fulltext_listo?'ok':'no'}"></span>búsqueda ${s.fulltext_listo?'lista':'no lista'} · ` +
