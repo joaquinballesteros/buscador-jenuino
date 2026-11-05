@@ -6,6 +6,35 @@ en el [README](../README.md).
 
 ---
 
+## 2026-11-05 · Máquina virtual del SCI: `jenui.uma.es`
+
+El SCI ha creado `jenui.uma.es` (Rocky Linux 9, solo IPv6, salida por proxy,
+certificado SSL de GEANT/HARICA hasta mayo de 2027). Preparada para servir el
+buscador, **sin git** (decisión del usuario: los ficheros de datos son grandes):
+
+- Copia con `scripts/desplegar.sh` (nuevo): huellas SHA-256 a ambos lados y
+  `tar` por SSH solo de lo cambiado; nunca envía ni pisa los juicios de
+  `/evaluar`; `--traer-juicios` los trae. Primer envío: 97 ficheros, 349 MB, 28 s.
+- Instalado: Python 3.12 + `.venv` con las dependencias, nginx con el
+  certificado del SCI y página de mantenimiento, `jenui.service` (instalado,
+  **sin habilitar**). Verificado desde fuera por IPv4: `http` → `https`,
+  certificado válido.
+- Corregido de paso: la clave privada del certificado era legible por todos
+  (`644` → `600`).
+
+**Bloqueos:**
+
+1. **Memoria**: 1,6 GB, de los que el agente de seguridad corporativo
+   (SentinelOne) ocupa ~520 MB. El buscador necesita ~1,5 GB más (bge-m3 +
+   índice): hay que pedir al CAU subir a 4 GB.
+2. **Ollama** sin instalar: el clasificador de permisos bloqueó ejecutar en el
+   servidor su instalador descargado de internet; queda a decisión del usuario.
+
+Pendiente detectado: `static/temas.html` llama a `/api/topics`, que no existe
+en la aplicación (llegó así con el commit `64d2002`).
+
+---
+
 ## 2026-11-05 · Buscar sin salir al exterior
 
 - **Embeddings de búsqueda en local** (`providers.embeddings.provider: ollama`,

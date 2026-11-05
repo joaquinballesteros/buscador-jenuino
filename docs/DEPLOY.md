@@ -182,9 +182,20 @@ de administrador (no aloja servidores físicos), y gestiona los nombres
 | **Tu equipo + servidor con GPU** | construye: ingesta, índice vectorial, grafo (LLM), alias, conceptos |
 
 La máquina virtual no necesita llegar al servidor con GPU (que suele tener una
-IP privada): todo lo que construye se versiona en el repo (`data/`,
-`rag_storage/`), así que basta con `git pull` en la máquina virtual y el
-servidor recarga solo.
+IP privada): **no se usa git en el servidor** (los ficheros de datos son
+grandes); se copian desde tu equipo con `scripts/desplegar.sh`, que compara
+huellas SHA-256 y envía solo lo que ha cambiado, como un `tar` por SSH (no
+necesita rsync). El servidor recarga solo los datos; si cambia código o
+`config.json`, el script reinicia el servicio.
+
+```bash
+SSH_AUTH_SOCK=/run/user/1000/ssh-jenui.sock ./scripts/desplegar.sh            # enviar cambios
+SSH_AUTH_SOCK=/run/user/1000/ssh-jenui.sock ./scripts/desplegar.sh --simular  # ver qué enviaría
+SSH_AUTH_SOCK=/run/user/1000/ssh-jenui.sock ./scripts/desplegar.sh --traer-juicios
+```
+
+(La clave de acceso tiene frase de paso: cárgala antes en un agente con
+`eval "$(ssh-agent -a /run/user/1000/ssh-jenui.sock -t 8h)" && ssh-add servidor_uma/clbg`.)
 
 Para construir con la GPU desde tu equipo, sin tocar `config.json`:
 
@@ -198,13 +209,41 @@ mismo `bge-m3`, con vectores idénticos, así que el índice sigue siendo
 compatible.)
 
 **Juicios de `/evaluar`.** Se escriben en `evaluacion/juicios/<evaluador>.csv`
-en la máquina que sirve la página. Para analizarlos, súbelos al repo desde la
-máquina virtual (`git add evaluacion/juicios && git commit && git push`) o
-cópialos (`scp`) a tu equipo antes de lanzar `scripts/eval_metrics.py`.
+en el servidor; `desplegar.sh` nunca los envía ni los pisa.
+`--traer-juicios` los copia a tu equipo para `scripts/eval_metrics.py`.
+
+### Cómo está montada `jenui.uma.es`
+
+| Aspecto | Valor |
+|---|---|
+| Sistema | Rocky Linux 9 (`dnf`, no `apt`); SELinux desactivado |
+| Acceso | `ssh -p 22360 root@jenui.uma.es` desde IPv4 (el 22 solo por IPv6) |
+| Red | solo IPv6; el SCI reenvía por IPv4 el SSH (22360) y la web (80/443) |
+| Salida a internet | proxy `http://jano7.sci.uma.es:3128` (pásalo explícito: `dnf --setopt=proxy=…`, `pip --proxy …`) |
+| Cortafuegos | nftables del SCI: admite 22, 80, 443 y 22360; no borrar reglas |
+| Aplicación | `/home/jenui/buscador-jenuino`, usuario de sistema `jenui`, Python 3.12 en `.venv` |
+| Servicio | `jenui.service` (systemd) |
+| nginx | `/etc/nginx/conf.d/jenui.conf`: 80 → 443; 443 → `127.0.0.1:8000`; página de mantenimiento si la app no responde; vacía `X-Remote-User` |
+| Certificado | del SCI (GEANT/HARICA, hasta mayo de 2027): `/etc/pki/tls/certs/jenui_uma_es_fullchain.crt` (certificado + intermedio) y `/etc/pki/tls/private/jenui_uma_es.key` |
+| Memoria | el agente de seguridad corporativo (SentinelOne, `s1-*`) ocupa ~520 MB: con 1,6 GB no cabe el buscador; hacen falta ~4 GB |
+
+Para instalar paquetes del sistema en esta máquina:
+
+```bash
+dnf -y --setopt=proxy=http://jano7.sci.uma.es:3128 install python3.12 python3.12-pip nginx
+```
+
+Ollama necesita el proxy también como servicio, en
+`/etc/systemd/system/ollama.service.d/proxy.conf`:
+
+```ini
+[Service]
+Environment="HTTPS_PROXY=http://jano7.sci.uma.es:3128"
+Environment="NO_PROXY=localhost,127.0.0.1,::1"
+```
 
 Para el nombre y el certificado: solicitud al CAU (`cau@uma.es`, extensión
-53000). Con el certificado que entreguen, usa la configuración de nginx del
-apartado 4 con sus rutas en `ssl_certificate` y `ssl_certificate_key`.
+53000).
 
 ## Actualizar
 
