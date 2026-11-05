@@ -6,14 +6,17 @@
       "provider": "openai",
       "model": "qwen3.8:27b-q4_K_M"
     },
+    "_comentario_embeddings": "Embeddings en local (Ollama + bge-m3): así buscar no hace ninguna llamada al exterior; una consulta tarda 25-45 ms en CPU. Para construir (índice vectorial, grafo, conceptos) conviene la GPU del servidor, con el mismo modelo y vectores idénticos: JENUI_EMBED_PROVIDER=openai python scripts/...",
     "embeddings": {
-      "provider": "openai",
+      "provider": "ollama",
       "model": "bge-m3",
       "dim": 1024
     },
     "ollama": {
       "host": "http://localhost:11434",
-      "num_ctx": 16384
+      "num_ctx": 16384,
+      "_comentario_keep_alive": "Tiempo que Ollama mantiene bge-m3 en memoria tras una búsqueda (-1 = siempre, para que la primera búsqueda tras un rato no tarde segundos en recargarlo).",
+      "keep_alive": -1
     },
     "openai": {
       "_comentario": "Proveedor 'openai' contra cualquier API compatible: el destino y la clave salen de OPENAI_BASE_URL y OPENAI_API_KEY (.env). extra_body se añade a cada petición; {\"think\": false} desactiva el razonamiento de Qwen3 servido por Ollama detrás de LiteLLM.",

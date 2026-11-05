@@ -6,6 +6,23 @@ en el [README](../README.md).
 
 ---
 
+## 2026-11-05 · Buscar sin salir al exterior
+
+- **Embeddings de búsqueda en local** (`providers.embeddings.provider: ollama`,
+  `bge-m3`): una consulta tarda 25-45 ms en CPU y la búsqueda completa
+  0,08-0,15 s. Comprobado con el servidor GPU inaccesible a propósito: busca
+  igual. Nada sale al exterior: el LLM solo interviene al construir el grafo.
+- `providers.ollama.keep_alive: -1` mantiene bge-m3 cargado (antes Ollama lo
+  descargaba a los 5 min y la primera búsqueda tardaba segundos).
+- Para construir con la GPU: `JENUI_EMBED_PROVIDER=openai python scripts/...`
+  (mismo modelo vía LiteLLM, vectores idénticos, índice compatible).
+- Consecuencia: el buscador se puede desplegar en una máquina virtual del SCI
+  sin acceso al servidor GPU (que tiene IP privada). Guía en
+  [DEPLOY.md](DEPLOY.md#servidor-virtual-del-sci-universidad-de-málaga). La UMA
+  da nombres `*.uma.es` y certificados SSL a través del CAU.
+
+---
+
 ## 2026-11-04 · Ontología v1.2, grafo único, reparación de textos y banco de evaluación
 
 Rama: `ontologia-v1.2` (sin fusionar en `main`).

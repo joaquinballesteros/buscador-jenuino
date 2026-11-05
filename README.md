@@ -337,12 +337,19 @@ pruebas puntuales.
 |---|---|---|
 | `llm.provider` | `ollama`, `openai`, `anthropic` | `ollama` |
 | `llm.model` | modelo concreto | `phi4:14b` |
-| `embeddings.provider` | `ollama`, `openai` | `ollama` |
+| `embeddings.provider` | `ollama`, `openai` | `ollama` (buscar no sale al exterior) |
 | `embeddings.model` | modelo concreto | `bge-m3` |
 | `embeddings.dim` | fuerza la dimensión (`null` = la del modelo) | `null` |
 | `ollama.host` | URL de Ollama | `http://localhost:11434` |
 | `ollama.num_ctx` | contexto del LLM local | `16384` |
+| `ollama.keep_alive` | tiempo que Ollama mantiene bge-m3 cargado (`-1` = siempre) | `-1` |
 | `openai.extra_body` | campos extra en cada petición del proveedor `openai` | `{"think": false}` |
+
+**Buscar no llama al LLM ni sale al exterior**: solo vectoriza la consulta con
+`bge-m3` en el Ollama local (25-45 ms en CPU). El LLM se usa únicamente para
+*construir* el grafo. Para construir con una GPU remota, sin tocar
+`config.json`: `JENUI_EMBED_PROVIDER=openai python scripts/build_fulltext.py`
+(es el mismo modelo servido por LiteLLM; vectores idénticos).
 
 El proveedor `openai` sirve para cualquier API compatible: el destino sale de
 `OPENAI_BASE_URL` y la clave de `OPENAI_API_KEY` (en `.env`). Así se usa, por

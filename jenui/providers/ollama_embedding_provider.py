@@ -25,9 +25,14 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         super().__init__(model=model, dim=dim)
         self._host = settings.ollama_host
         self._client = ollama.Client(host=self._host)
+        # Cuánto mantiene Ollama el modelo en memoria tras usarlo. Por defecto lo
+        # descarga a los 5 min y la primera búsqueda tras un rato tarda segundos
+        # en recargarlo; -1 lo deja siempre cargado (bge-m3 ocupa ~1,2 GB).
+        self._keep_alive = settings.get("providers.ollama.keep_alive", -1)
 
     def embed(self, texts: list[str]) -> np.ndarray:
-        response = self._client.embed(model=self.model, input=texts)
+        response = self._client.embed(model=self.model, input=texts,
+                                      keep_alive=self._keep_alive)
         return np.asarray(response["embeddings"], dtype=np.float32)
 
     def as_lightrag_func(self):

@@ -8,11 +8,15 @@ por dominio y HTTPS. Para desarrollo local, ver el [README](../README.md).
 - **Linux con systemd** (Ubuntu/Debian, Rocky/Alma... cualquiera sirve; los
   ejemplos usan `apt`, adáptalos si es otra distro).
 - **Python 3.11+**.
-- **Ollama**, si vas a servir búsquedas con embeddings locales (el valor por
-  defecto de `config.json` → `providers.embeddings.provider`). Importante:
-  aunque el LLM (`providers.llm`) sea una API externa, **los embeddings se
-  invocan en cada búsqueda** para vectorizar la consulta — si son locales,
-  Ollama tiene que estar corriendo en el propio servidor.
+- **Ollama con `bge-m3`** (el valor por defecto de `config.json` →
+  `providers.embeddings.provider`). Es lo único que la búsqueda necesita
+  además de Python: cada consulta se vectoriza en local (25-45 ms en CPU) y
+  **nada sale al exterior**. El LLM solo se usa para *construir* el grafo, no
+  para buscar, así que el servidor de búsqueda **no necesita GPU, ni LLM, ni
+  `.env`**. `providers.ollama.keep_alive: -1` mantiene el modelo cargado
+  (~1,2 GB de memoria) para que la primera búsqueda tras un rato no tarde.
+- **Memoria**: unos 4 GB bastan (índice vectorial ~250 MB, grafo, bge-m3 y
+  Python).
 - Un dominio apuntando a la IP del servidor, si quieres HTTPS con nombre
   propio (Caddy/certbot lo gestionan solos, pero necesitan el DNS ya
   resuelto).
@@ -52,8 +56,9 @@ sudo -u jenui -H bash -c '
 '
 ```
 
-Si usas un proveedor de LLM o embeddings por API (`config.json` →
-`providers`), crea `.env` con la clave — **no se versiona**:
+Para **servir búsquedas no hace falta `.env`**. Solo si en ese servidor vas a
+*construir* (grafo nuevo, artículos nuevos) con un LLM o embeddings por API,
+crea `.env` con la clave — **no se versiona**:
 
 ```bash
 sudo -u jenui bash -c 'cat > /home/jenui/buscador-jenuino/.env' <<'EOF'
@@ -164,6 +169,42 @@ sudo ufw allow OpenSSH
 sudo ufw allow 80,443/tcp
 sudo ufw enable
 ```
+
+## Servidor virtual del SCI (Universidad de Málaga)
+
+El Servicio Central de Informática ofrece máquinas virtuales Linux con acceso
+de administrador (no aloja servidores físicos), y gestiona los nombres
+`*.uma.es` y sus certificados SSL. El reparto recomendado:
+
+| Dónde | Qué hace |
+|---|---|
+| **Máquina virtual del SCI** | sirve las búsquedas y `/evaluar`: Python + Ollama con `bge-m3`, nada más |
+| **Tu equipo + servidor con GPU** | construye: ingesta, índice vectorial, grafo (LLM), alias, conceptos |
+
+La máquina virtual no necesita llegar al servidor con GPU (que suele tener una
+IP privada): todo lo que construye se versiona en el repo (`data/`,
+`rag_storage/`), así que basta con `git pull` en la máquina virtual y el
+servidor recarga solo.
+
+Para construir con la GPU desde tu equipo, sin tocar `config.json`:
+
+```bash
+JENUI_EMBED_PROVIDER=openai python scripts/build_fulltext.py   # embeddings en el servidor GPU
+JENUI_EMBED_PROVIDER=openai python scripts/build_graph.py --sin-metadatos
+```
+
+(`OPENAI_BASE_URL` y `OPENAI_API_KEY` del `.env` apuntan a LiteLLM; es el
+mismo `bge-m3`, con vectores idénticos, así que el índice sigue siendo
+compatible.)
+
+**Juicios de `/evaluar`.** Se escriben en `evaluacion/juicios/<evaluador>.csv`
+en la máquina que sirve la página. Para analizarlos, súbelos al repo desde la
+máquina virtual (`git add evaluacion/juicios && git commit && git push`) o
+cópialos (`scp`) a tu equipo antes de lanzar `scripts/eval_metrics.py`.
+
+Para el nombre y el certificado: solicitud al CAU (`cau@uma.es`, extensión
+53000). Con el certificado que entreguen, usa la configuración de nginx del
+apartado 4 con sus rutas en `ssl_certificate` y `ssl_certificate_key`.
 
 ## Actualizar
 
