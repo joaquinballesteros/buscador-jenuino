@@ -27,8 +27,13 @@ buscador, **sin git** (decisión del usuario: los ficheros de datos son grandes)
 1. **Memoria**: 1,6 GB, de los que el agente de seguridad corporativo
    (SentinelOne) ocupa ~520 MB. El buscador necesita ~1,5 GB más (bge-m3 +
    índice): hay que pedir al CAU subir a 4 GB.
-2. **Ollama** sin instalar: el clasificador de permisos bloqueó ejecutar en el
-   servidor su instalador descargado de internet; queda a decisión del usuario.
+2. ~~Ollama~~: lo instaló el usuario con el instalador oficial (el clasificador
+   de permisos no dejó ejecutarlo de forma automática). Ollama 0.40.14, solo en
+   `127.0.0.1:11434`, con el proxy del SCI en su servicio. `bge-m3` descargado
+   con el **mismo digest** que el índice (`7907646426…`); un embedding de
+   prueba coincide con el local hasta la quinta cifra decimal.
+
+Cuando el SCI amplíe la memoria, arrancar es `systemctl enable --now jenui`.
 
 Pendiente detectado: `static/temas.html` llama a `/api/topics`, que no existe
 en la aplicación (llegó así con el commit `64d2002`).
