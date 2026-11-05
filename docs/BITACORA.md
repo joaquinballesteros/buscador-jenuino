@@ -6,6 +6,54 @@ en el [README](../README.md).
 
 ---
 
+## 2026-11-05 · Similitud real y corte con fundamento: teoría de valores extremos
+
+**Problema** (detectado por el usuario): el reescalado mín-máx pierde la
+información absoluta de la similitud. Medido: el mejor artículo de las 28
+consultas del banco tiene similitud ≥ 0,534 y el de consultas ajenas a JENUI
+(paella, agujeros negros…) ≤ 0,487; tras el mín-máx ambos valen 1. La
+puntuación *z* tampoco sirve (consultas ajenas con *z* de hasta 6,4). Pero un
+margen absoluto respecto al mejor tampoco: con 0,10 deja 8 artículos en
+"abandono" y 637 en "descarga cognitiva", porque las distribuciones de cada
+consulta tienen formas muy distintas.
+
+**Revisión bibliográfica** (por petición del usuario: solución con fundamento):
+
+| Línea | Trabajos | Conclusión aquí |
+|---|---|---|
+| Mezcla relevante/no relevante por EM | Manmatha et al. 2001; Arampatzis, Kamps y Robertson 2009; Kanoulas et al. 2010 | probada: inestable (1.782 o 0 artículos) |
+| Normal robusta del fondo (propuesta del usuario) | — | estable, pero el fondo no siempre es normal (curtosis hasta 7) |
+| **Teoría de valores extremos** | **Bahri et al., SIGIR 2023 (*Surprise*)** | **elegida**: no supervisada, para vecinos más cercanos, calibra entre consultas |
+| Supervisados | BiCut 2019, Choppy 2020, AttnCut 2021, MtCut, Cosine Adapter (CIKM 2024) | necesitan cientos de consultas etiquetadas |
+| Fusión de señales | Bruch, Gai e Ingber, TOIS 2024 | combinación lineal; la normalización es un detalle para ordenar |
+| Abstención | predictores de calidad de consulta (NQC, WIG) | sin solución establecida; se mide aparte |
+
+Comprobaciones propias: el control de falsos descubrimientos
+(Benjamini-Hochberg) es demasiado estricto (23 de 28 consultas vacías); el
+artículo de *Surprise* no lo usa y ajusta el umbral con juicios. Con los 1.920
+artículos el ajuste pierde discriminación; con 200 (como en el artículo)
+funciona. Las consultas ajenas devuelven coincidencias parciales reales
+(*bioinformática* para "cáncer de mama", *historia de la informática* para
+"imperio romano"): es la limitación reconocida del método.
+
+**Implantado:**
+
+- Fusión `bonus`: s = similitud real + 0,05 · min(1, empuje del grafo / 1).
+- Corte `sorpresa` (`jenui/search/truncation.py`, solo numpy: GPD por máxima
+  verosimilitud con el perfil de Grimshaw, validada con muestras sintéticas),
+  umbral provisional −log p ≥ 3.
+- La portada muestra la **similitud real**, no un porcentaje.
+- `scripts/eval_truncado.py`: sorpresa, k fijo, umbral global y sorpresa +
+  suelo, con F1 y validación cruzada dejando una consulta fuera; abstención
+  en 12 consultas ajenas (`evaluacion/consultas_ajenas.csv`).
+- Pool regenerado: 642 candidatos (ranking nuevo juzgado hasta 20).
+
+Ejemplos: "ABP", 84 resultados con sorpresa ~12 (el umbral global fallaría:
+máxima similitud 0,534); "docencia de ciberseguridad", 13; "receta de paella",
+3 con sorpresa justo en el umbral.
+
+---
+
 ## 2026-11-05 · Umbrales en vez de topes
 
 Criterio del usuario: "no importa si devuelve 50 artículos pertinentes; el

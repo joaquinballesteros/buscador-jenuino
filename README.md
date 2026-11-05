@@ -76,7 +76,7 @@ Abre <http://127.0.0.1:8000>, busca (p. ej. *"gamificación en programación"*) 
 
 Cada tarjeta muestra, de arriba abajo:
 
-- **Porcentaje** (arriba a la derecha) — relevancia del artículo para tu consulta: `peso_texto · similitud de texto + peso_grafo · empuje del grafo`.
+- **Similitud** (arriba a la derecha) — similitud semántica real (coseno) entre tu consulta y el artículo. No es un porcentaje relativo: los resultados se ordenan por esta similitud más un pequeño bonus si el artículo comparte conceptos del grafo con el tema, y la lista se corta donde los artículos dejan de destacar estadísticamente sobre los no relevantes (ver [`corte`](#search--ranking)).
 - **Título** — enlaza al PDF.
 - **Autores · JENUI año · categoría** — metadatos, en gris.
 - **Resumen** del artículo.
@@ -430,7 +430,10 @@ Si cambias la ontología, reconstruye el grafo (borra `rag_storage/`).
 | `pooling_alpha` | peso del máximo en el híbrido: `α·max + (1−α)·media` | `0.5` |
 | `peso_texto` | peso de la similitud vectorial | `0.6` |
 | `peso_grafo` | peso del empuje por conceptos compartidos | `0.4` |
-| `normalizacion` | escala común de texto y grafo: `ninguna` / `minmax` / `rrf` | `minmax` |
+| `normalizacion` | cómo se combinan texto y grafo: `bonus` (similitud real + bonus acotado del grafo) / `minmax` / `rrf` / `ninguna` | `bonus` |
+| `bonus_grafo` / `referencia_grafo` | modo `bonus`: s = similitud + bonus · min(1, empuje / referencia) | `0.05` / `1.0` |
+| `corte` | dónde cortar la lista: `sorpresa` (teoría de valores extremos) o `umbral` (`umbral_resultado`) | `sorpresa` |
+| `umbral_sorpresa` / `profundidad_sorpresa` | entran los de sorpresa −log p ≥ umbral (3 = p 0,05), modelando la cola de los N primeros | `3.0` / `200` |
 | `candidatos_normalizacion` | mejores candidatos por texto entre los que se reescala (`minmax`); con pocos, actúa como un tope encubierto | `200` |
 | `rrf_k` | constante de Reciprocal Rank Fusion (`rrf`) | `60` |
 | `n_semillas` | tope opcional de semillas (`null` = sin tope: decide `margen_semilla`) | `null` |
@@ -629,7 +632,8 @@ personas, no a ojo. Todo vive en [`evaluacion/`](evaluacion/):
 python scripts/eval_pool.py        # 1. reúne los candidatos de varias configuraciones
 # 2. los evaluadores juzgan en http://<servidor>/evaluar
 python scripts/eval_metrics.py     # 3. acuerdo entre evaluadores y nDCG@10 / recall@10
-python scripts/eval_metrics.py --barrido peso_grafo=0,0.15,0.3,0.5 --fijo normalizacion=minmax
+python scripts/eval_metrics.py --barrido bonus_grafo=0,0.03,0.05,0.1
+python scripts/eval_truncado.py    # 4. dónde cortar: sorpresa, k fijo, umbral global (validación cruzada)
 ```
 
 En `/evaluar` cada persona escribe su nombre (si dos escriben el mismo, cuentan

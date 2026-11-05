@@ -19,6 +19,7 @@ class SearchResult:
     score: float
     text_score: float
     shared_concepts: list[str] = field(default_factory=list)
+    surprise: float | None = None      # -log p frente a los no relevantes (corte por sorpresa)
 
     def to_dict(self) -> dict:
         a = self.article
@@ -32,6 +33,7 @@ class SearchResult:
             "category": a.category,
             "score": round(float(self.score), 4),
             "text_score": round(float(self.text_score), 4),
+            "sorpresa": None if self.surprise is None else round(float(self.surprise), 2),
             "shared_concepts": self.shared_concepts,
             # enlace directo a aenui.org: no depende de tener pdf/ descargado
             "pdf": f"https://aenui.org/actas/pdf/{a.filename or a.id + '.pdf'}",

@@ -108,7 +108,7 @@ function render(data){
   if(!data.results.length){ results.innerHTML = fix + `<div class="empty">Sin resultados.</div>`; return; }
   results.innerHTML = fix + data.results.map(r => `
     <div class="card">
-      <span class="score">${(r.score*100).toFixed(0)}%</span>
+      <span class="score" title="Similitud semántica (coseno) entre tu consulta y el artículo: es el valor real, no un porcentaje relativo. Los resultados se ordenan por esta similitud más un pequeño bonus si el artículo comparte conceptos del grafo con el tema.">similitud ${r.text_score.toFixed(2)}</span>
       <h3><a href="${r.pdf}" target="_blank">${esc(r.title)}</a></h3>
       <div class="meta">${esc(r.authors)}${r.year? ' · JENUI '+r.year:''}${r.category? ' · '+esc(r.category):''}</div>
       <div class="abstract">${esc(r.abstract)}</div>

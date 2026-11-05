@@ -8,6 +8,7 @@ from jenui.indexing.vector_index import VectorIndex
 from jenui.ingestion.corpus_repository import CorpusRepository
 from jenui.providers.provider_factory import ProviderFactory
 from jenui.search.ranker import Ranker
+from jenui.search.truncation import SurpriseTruncator
 from jenui.search.spell_corrector import SpellCorrector
 
 
@@ -129,10 +130,11 @@ class Searcher:
             )
 
         ranker = Ranker.from_config(config)
-        ranked = self._above_threshold(ranker.rank(text_hits, graph_weights, top_k), config)
+        ranked, surprise = self._cut(ranker, text_hits, graph_weights, config, top_k)
 
         results = [
-            self._to_result(article_id, score, text_hits, shared_concepts)
+            self._to_result(article_id, score, text_hits, shared_concepts,
+                            surprise.get(article_id))
             for article_id, score in ranked
             if article_id in self.articles
         ]
@@ -225,7 +227,7 @@ class Searcher:
         w_grafo = config.get("peso_grafo", 0.15)
         normalizacion = config.get("normalizacion", "ninguna")
         ranker = Ranker.from_config(config)
-        ranked = self._above_threshold(ranker.rank(text_hits, graph_weights, top_k), config)
+        ranked, surprise = self._cut(ranker, text_hits, graph_weights, config, top_k)
         signals = ranker.signals(text_hits, graph_weights)
         rank_stage = []
         for pos, (aid, final) in enumerate(ranked, 1):
@@ -238,6 +240,8 @@ class Searcher:
                                "text_norm": round(tnorm, 4),
                                "graph_raw": round(graph_weights.get(aid, 0.0), 4),
                                "graph_norm": round(gnorm, 4),
+                               "surprise": (None if aid not in surprise
+                                            else round(surprise[aid], 2)),
                                "final": round(final, 4)})
 
         return {
@@ -261,6 +265,28 @@ class Searcher:
 
     def _label(self, detail: dict) -> dict:
         return {**detail, **self._brief(detail["article_id"])}
+
+    def _cut(self, ranker: Ranker, text_hits: dict, graph_weights: dict,
+             config: dict, top_k: int) -> tuple[list[tuple[str, float]], dict[str, float]]:
+        """Ordena y decide dónde cortar la lista, según ``corte``.
+
+        * ``sorpresa`` — teoría de valores extremos (ver
+          :class:`~jenui.search.truncation.SurpriseTruncator`): se modela la cola
+          de las puntuaciones no relevantes de la consulta y entran los resultados
+          con sorpresa ``-log p`` >= ``umbral_sorpresa``.
+        * ``umbral`` — puntuación final >= ``umbral_resultado`` (escala 0-1).
+
+        Devuelve la lista cortada y la sorpresa de cada resultado (vacía si no
+        se usa).
+        """
+        if config.get("corte", "umbral") == "sorpresa":
+            truncator = SurpriseTruncator(config.get("umbral_sorpresa", 3.0),
+                                          config.get("profundidad_sorpresa", 200))
+            ranked = ranker.rank(text_hits, graph_weights, truncator.depth)
+            kept, surprise = truncator.cut(ranked)
+            return kept[:top_k], surprise
+        ranked = ranker.rank(text_hits, graph_weights, top_k)
+        return self._above_threshold(ranked, config), {}
 
     @staticmethod
     def _above_threshold(ranked: list[tuple[str, float]], config: dict) -> list[tuple[str, float]]:
@@ -308,7 +334,7 @@ class Searcher:
         return seeds
 
     def _to_result(self, article_id: str, score: float, text_hits: dict,
-                   shared_concepts: dict) -> SearchResult:
+                   shared_concepts: dict, surprise: float | None = None) -> SearchResult:
         hit = text_hits.get(article_id)
         return SearchResult(
             article=self.articles[article_id],
@@ -318,4 +344,5 @@ class Searcher:
             shared_concepts=self.graph.rank_concepts(
                 shared_concepts.get(article_id, set())
             ),
+            surprise=surprise,
         )

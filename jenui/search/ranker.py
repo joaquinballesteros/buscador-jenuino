@@ -28,15 +28,24 @@ class Ranker:
     * ``rrf`` — *Reciprocal Rank Fusion*: se combinan las **posiciones** en
       cada ranking, ``1/(k+posición)``, así que la escala deja de importar.
 
+    * ``bonus`` — la similitud se queda **en sus unidades reales** (coseno) y el
+      grafo suma un bonus acotado: ``s = t + bonus·min(1, g/referencia)``. Es una
+      combinación lineal (Bruch et al., TOIS 2024: la combinación lineal supera a
+      RRF y la normalización es un detalle menor para ordenar), pero sin
+      reescalar por consulta, así que no se pierde la información absoluta de
+      la similitud. ``referencia`` es fija: estar conectado con el tema vale como
+      mucho ``bonus`` puntos de similitud, en cualquier consulta.
+
     En ``minmax`` y ``rrf`` la puntuación final se divide entre la suma de los
-    pesos, de modo que queda en 0-1 (la web la muestra como porcentaje).
+    pesos, de modo que queda en 0-1.
     """
 
-    MODES = ("ninguna", "minmax", "rrf")
+    MODES = ("ninguna", "minmax", "rrf", "bonus")
 
     def __init__(self, text_weight: float = 0.85, graph_weight: float = 0.15,
                  normalization: str = "ninguna", candidates: int = 50,
-                 rrf_k: int = 60) -> None:
+                 rrf_k: int = 60, bonus: float = 0.05,
+                 graph_reference: float = 1.0) -> None:
         if normalization not in self.MODES:
             raise ValueError(f"normalizacion desconocida: {normalization!r} "
                              f"(opciones: {', '.join(self.MODES)})")
@@ -45,6 +54,8 @@ class Ranker:
         self._normalization = normalization
         self._candidates = max(2, candidates)
         self._rrf_k = rrf_k
+        self._bonus = bonus
+        self._graph_reference = graph_reference or 1.0
 
     @classmethod
     def from_config(cls, config: dict) -> "Ranker":
@@ -54,6 +65,8 @@ class Ranker:
             normalization=config.get("normalizacion", "ninguna"),
             candidates=config.get("candidatos_normalizacion", 50),
             rrf_k=config.get("rrf_k", 60),
+            bonus=config.get("bonus_grafo", 0.05),
+            graph_reference=config.get("referencia_grafo", 1.0),
         )
 
     def signals(self, text_hits: dict[str, ChunkHit],
@@ -66,9 +79,12 @@ class Ranker:
             return {a: (self._rrf(text_rank.get(a)), self._rrf(graph_rank.get(a)))
                     for a in ids}
 
+        text = {a: text_hits[a].score if a in text_hits else 0.0 for a in ids}
+        if self._normalization == "bonus":
+            ref = self._graph_reference
+            return {a: (text[a], min(1.0, graph_weights.get(a, 0.0) / ref)) for a in ids}
         max_weight = max(graph_weights.values()) if graph_weights else 1.0
         graph = {a: graph_weights.get(a, 0.0) / max_weight for a in ids}
-        text = {a: text_hits[a].score if a in text_hits else 0.0 for a in ids}
         if self._normalization == "minmax":
             text = self._min_max(text)
         return {a: (text[a], graph[a]) for a in ids}
@@ -76,6 +92,10 @@ class Ranker:
     def rank(self, text_hits: dict[str, ChunkHit], graph_weights: dict[str, float],
              top_k: int) -> list[tuple[str, float]]:
         """Devuelve ``(article_id, score)`` ordenado de mayor a menor."""
+        if self._normalization == "bonus":
+            scores = {a: text + self._bonus * graph
+                      for a, (text, graph) in self.signals(text_hits, graph_weights).items()}
+            return sorted(scores.items(), key=lambda item: item[1], reverse=True)[:top_k]
         scale = 1.0
         if self._normalization != "ninguna":
             scale = (self._text_weight + self._graph_weight) or 1.0

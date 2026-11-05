@@ -130,9 +130,10 @@ consulta
    │     margen_semilla del mejor) y desde los conceptos más afines a la consulta
    │     └─ filtra los conceptos de las semillas por afinidad con la consulta:
    │        suelo absoluto → corte relativo (media+factor·desv) → tope top-N
-   ├─ Ranker  →  peso_texto · similitud + peso_grafo · conceptos compartidos
-   │     (normalizacion: ninguna | minmax | rrf, para que los pesos sean comparables)
-   └─ umbral_resultado  →  la lista se corta por relevancia, no por número
+   ├─ Ranker  →  s = similitud + bonus · min(1, empuje del grafo / referencia)
+   │     (en unidades reales de similitud: sin reescalar por consulta)
+   └─ SurpriseTruncator  →  la lista se corta donde la sorpresa −log p frente a la
+         cola de los no relevantes (Pareto generalizada) baja del umbral
 ```
 
 **Dos entradas al grafo.** La expansión parte de los conceptos de las
@@ -146,7 +147,19 @@ mejor) más un suelo absoluto y un tope, porque las similitudes de este corpus
 están comprimidas y un umbral fijo o deja pasar ruido o pierde lo bueno según
 la consulta.
 
-**Normalización.** La similitud de los buenos resultados se concentra en unas
+**Corte por teoría de valores extremos.** `jenui/search/truncation.py`
+implementa *Surprise* (Bahri et al., SIGIR 2023): se ajusta una distribución
+de Pareto generalizada a la cola de las puntuaciones no relevantes de los 200
+primeros (máxima verosimilitud, forma ≥ 0; selección voraz del umbral de
+excesos con Cramér-von Mises) y cada resultado recibe una sorpresa −log p.
+Se eligió tras revisar la literatura de truncado (mezclas por EM, inestables
+en estos datos; métodos supervisados, sin datos para entrenarlos; umbral
+global, que falla con siglas). El reescalado mín-máx anterior se abandonó
+porque asigna siempre el máximo al mejor artículo: pierde la similitud
+absoluta, que distingue las consultas sin artículos pertinentes (las del banco
+superan 0,534; consultas ajenas a JENUI no pasan de 0,487).
+
+**Normalización (modos minmax y rrf).** La similitud de los buenos resultados se concentra en unas
 centésimas (0,66-0,70 en un top-15 típico) mientras que el empuje del grafo va
 de 0 a 1: sin normalizar, con `peso_grafo` 0,3 el grafo decide el orden con 5-10
 veces más fuerza que el texto. `minmax` reescala la similitud entre los
@@ -306,6 +319,7 @@ GraphML, y recarga solo lo que cambió. Consecuencias prácticas:
 | `graph/knowledge_graph.py` | `KnowledgeGraph` | grafo consultable |
 | `search/ranker.py` | `Ranker` | combina señales |
 | `search/spell_corrector.py` | `SpellCorrector` | corrige erratas con vocabulario del corpus |
+| `search/truncation.py` | `SurpriseTruncator` | dónde cortar: teoría de valores extremos |
 | `search/searcher.py` | `Searcher` | orquesta la búsqueda (y `explain` para /testing) |
 | `web/app.py` | `create_app` | API HTTP e interfaz |
 | `analysis/concept_source.py` | `ConceptCorpusBuilder` | conceptos por artículo (grafo y/o keywords) |
@@ -398,6 +412,10 @@ evaluacion/consultas.csv ─> eval_pool.py ─> candidatos.json ─> /evaluar �
   los demás. El nombre lo declara la página; detrás de un proxy con
   autenticación básica manda la cabecera `X-Remote-User`.
 - **Referencia**: la mediana de los evaluadores (`JudgmentStore.consensus`).
+- **Truncado** (`scripts/eval_truncado.py`): sobre un mismo ranking juzgado
+  hasta 20, compara sorpresa, k fijo, umbral global y sorpresa + suelo por F1
+  con validación cruzada dejando una consulta fuera, y mide la abstención en
+  12 consultas ajenas (`evaluacion/consultas_ajenas.csv`), que no se juzgan.
 - **Métricas** (`scripts/eval_metrics.py`): nDCG@10 con ganancia 2^g−1,
   recall@10 (mediana ≥1), **precisión de la lista completa** (la medida del
   ruido cuando la lista se corta por umbral) y judged@10 (fracción del top-10 con juicio: si baja,

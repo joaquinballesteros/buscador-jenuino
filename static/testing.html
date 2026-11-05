@@ -148,12 +148,15 @@ function stageRanker(d){
     ninguna: "score final = peso_texto · similitud de texto + peso_grafo · empuje del grafo (el empuje del grafo se normaliza a [0,1]).",
     minmax: "score final = (peso_texto · texto + peso_grafo · grafo) / (peso_texto + peso_grafo), con la similitud de texto reescalada a [0,1] entre los mejores candidatos y el empuje del grafo normalizado a [0,1]. Entre paréntesis, la similitud bruta.",
     rrf: "score final = (peso_texto · texto + peso_grafo · grafo) / (peso_texto + peso_grafo), donde cada señal es (k+1)/(k+posición) en su propio ranking (Reciprocal Rank Fusion; el primero vale 1). Entre paréntesis, la similitud bruta.",
+    bonus: "score final = similitud real (coseno) + bonus_grafo · min(1, empuje del grafo / referencia). La lista se corta por sorpresa = −log p frente a la cola de los no relevantes (teoría de valores extremos).",
   }[norm];
   const rows = d.ranker.map(r=>`
     <tr>
       <td class="num">${r.rank}</td>
       <td class="num"><b>${r.final.toFixed(3)}</b></td>
-      <td class="arith">${raw ? "" : "("}${wt}·<b>${(raw ? r.text_score : r.text_norm).toFixed(3)}</b>${raw ? "" : ` <span class="note">(${r.text_score.toFixed(3)})</span>`} + ${wg}·<b>${r.graph_norm.toFixed(3)}</b>${raw ? "" : `) / ${+(wt+wg).toFixed(2)}`}</td>
+      <td class="arith">${norm === "bonus"
+        ? `<b>${r.text_score.toFixed(3)}</b> + bonus·<b>${r.graph_norm.toFixed(2)}</b>${r.surprise == null ? "" : ` <span class="note">· sorpresa ${r.surprise.toFixed(1)}</span>`}`
+        : `${raw ? "" : "("}${wt}·<b>${(raw ? r.text_score : r.text_norm).toFixed(3)}</b>${raw ? "" : ` <span class="note">(${r.text_score.toFixed(3)})</span>`} + ${wg}·<b>${r.graph_norm.toFixed(3)}</b>${raw ? "" : `) / ${+(wt+wg).toFixed(2)}`}`}</td>
       <td>${esc(r.title)}${year(r)}</td>
     </tr>`).join("");
   return `<div class="stage">

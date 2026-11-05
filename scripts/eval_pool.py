@@ -33,38 +33,47 @@ ANTERIOR = {  # hasta el 2026-11-05: 3 semillas, límite 12, sin normalizar, 15 
     "normalizacion": "ninguna", "peso_texto": 0.85, "peso_grafo": 0.3,
     "n_semillas": 3, "margen_semilla": None, "max_articulos_por_entidad": 12,
     "conceptos_consulta": 0, "max_conceptos_semilla": 20,
-    "umbral_resultado": None, "top_k": 15,
+    "corte": "umbral", "umbral_resultado": None, "top_k": 15,
 }
-NUEVA = {  # todo por umbral de similitud, sin topes; lista cortada por relevancia
-    "normalizacion": "minmax", "candidatos_normalizacion": 200,
-    "peso_texto": 0.6, "peso_grafo": 0.4,
+_GRAFO = {  # expansión por el grafo por umbrales de similitud, sin topes
     "n_semillas": None, "margen_semilla": 0.05, "max_articulos_por_entidad": 30,
     "conceptos_consulta": None, "umbral_concepto_consulta": 0.3,
     "margen_concepto_consulta": 0.06, "max_conceptos_semilla": None,
-    "umbral_resultado": 0.4, "top_k": 100,
 }
+UMBRAL_MINMAX = {  # 2026-11-05: min-max sobre 200 y corte en 0,4
+    **_GRAFO, "normalizacion": "minmax", "candidatos_normalizacion": 200,
+    "peso_texto": 0.6, "peso_grafo": 0.4,
+    "corte": "umbral", "umbral_resultado": 0.4, "top_k": 100,
+}
+NUEVA = {  # similitud real + bonus del grafo; corte por sorpresa (teoría de valores extremos)
+    **_GRAFO, "normalizacion": "bonus", "bonus_grafo": 0.05, "referencia_grafo": 1.0,
+    "corte": "sorpresa", "umbral_sorpresa": 3.0, "profundidad_sorpresa": 200,
+    "top_k": 100,
+}
+#: Profundidad hasta la que se juzga el ranking nuevo: cualquier corte (k fijo,
+#: umbral global, sorpresa) hasta aquí se evalúa sin artículos sin juzgar.
+PROFUNDIDAD = 20
+
 VARIANTS = {
-    # referencia sin grafo: su top-10 (con umbral su lista sería la cola larga de
-    # similitudes de texto, que ninguna configuración real devuelve)
-    "texto": {**NUEVA, "peso_grafo": 0.0, "umbral_resultado": None, "top_k": 10},
+    "texto": {**NUEVA, "bonus_grafo": 0.0, "corte": None, "top_k": 10},
     "anterior": ANTERIOR,
+    "umbral_minmax": UMBRAL_MINMAX,
     "nueva": NUEVA,
-    "nueva_sin_consulta": {**NUEVA, "conceptos_consulta": 0},
-    "nueva_grafo_0.2": {**NUEVA, "peso_texto": 0.8, "peso_grafo": 0.2},
-    "nueva_grafo_0.6": {**NUEVA, "peso_texto": 0.4, "peso_grafo": 0.6},
+    "nueva_ranking": {**NUEVA, "corte": None, "top_k": PROFUNDIDAD},
 }
 
 
 def pooled(results: list[dict], overrides: dict, top: int, max_list: int) -> list[dict]:
     """Lo que una configuración aporta al pool.
 
-    Con umbral_resultado, su lista entera (hasta ``max_list``): el ruido está en
-    la cola, y si no se juzga no se puede medir la precisión de la lista. Sin
-    umbral, los ``top`` primeros.
+    Con corte (umbral o sorpresa), su lista entera hasta ``max_list``: el ruido
+    está en la cola y hay que juzgarlo. Sin corte, su lista tal cual (su
+    ``top_k``), o los ``top`` primeros si no lo fija.
     """
-    if overrides.get("umbral_resultado") is not None:
+    cuts = overrides.get("corte") == "sorpresa" or overrides.get("umbral_resultado") is not None
+    if cuts:
         return results[:max_list]
-    return results[:top]
+    return results if "top_k" in overrides else results[:top]
 
 
 def main() -> None:
