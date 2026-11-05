@@ -265,3 +265,6 @@ rag_storage_meta/*
 
 # Copias de resolución de conflictos de git
 *.orig
+
+# Credenciales y notas del servidor de la UMA: nunca al repositorio
+servidor_uma/
