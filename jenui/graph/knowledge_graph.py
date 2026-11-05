@@ -31,6 +31,7 @@ class KnowledgeGraph:
         self._resolver = AliasResolver(settings.paths.aliases_file,
                                        settings.graph.get("alias_canonicos"))
         self._concepts = ConceptIndex(settings.paths)
+        self._matrix = None
 
         self.entity_to_articles: dict[str, set[str]] = {}
         self.article_to_entities: dict[str, set[str]] = {}
@@ -69,12 +70,14 @@ class KnowledgeGraph:
         self.article_to_entities = consolidated.article_to_entities
         self.discarded = raw.discarded
         self.merged = consolidated.merged
+        self._matrix = None                     # vectores de conceptos: se rehacen
 
     def reload(self) -> None:
         self.entity_to_articles = {}
         self.article_to_entities = {}
         self.discarded = self.merged = 0
         self._concepts = ConceptIndex(self._settings.paths)   # relee vectores nuevos
+        self._matrix = None
         self.load()
 
     def reload_if_changed(self) -> bool:
@@ -102,11 +105,51 @@ class KnowledgeGraph:
     def articles_of(self, entity: str) -> set[str]:
         return self.entity_to_articles.get(entity, set())
 
+    def query_entities(self, query_vector, threshold: float, limit: int,
+                       margin: float | None = None) -> dict[str, float]:
+        """Conceptos del grafo más afines a la consulta, sin pasar por las semillas.
+
+        Es la segunda puerta de entrada al grafo. La primera parte de los
+        conceptos de los artículos semilla, así que si el texto no encuentra
+        buenas semillas el grafo no puede ayudar: para "carga cognitiva" las
+        semillas trataban de otra cosa y el concepto "Carga Cognitiva", presente
+        en el grafo, nunca entraba. Aquí se comparan la consulta y todos los
+        conceptos (espacio centrado del índice de conceptos) y se quedan los que
+        superan ``threshold`` y quedan a menos de ``margin`` del mejor, como mucho
+        ``limit``. Las afinidades están comprimidas (los buenos rondan 0,38-0,51,
+        pero hay ruido hasta 0,46), así que un umbral fijo solo deja pasar ruido o
+        pierde lo bueno según la consulta: el margen relativo se adapta a cada una.
+        """
+        if query_vector is None or limit <= 0 or not self._concepts.is_available:
+            return {}
+        names, matrix = self._concept_matrix()
+        if not names:
+            return {}
+        scores = matrix @ self._concepts.center_query(query_vector)
+        best = np.argsort(-scores)[:limit]
+        if margin is not None and len(best):
+            threshold = max(threshold, float(scores[best[0]]) - margin)
+        return {names[i]: float(scores[i]) for i in best if scores[i] >= threshold}
+
+    def _concept_matrix(self) -> tuple[list[str], "np.ndarray"]:
+        """Vectores de todas las entidades del grafo, en una matriz (en caché)."""
+        if self._matrix is None:
+            names, vectors = [], []
+            for entity in self.entity_to_articles:
+                vector = self._concepts.vector(entity)
+                if vector is not None:
+                    names.append(entity)
+                    vectors.append(vector)
+            self._matrix = (names, np.vstack(vectors) if vectors else np.zeros((0, 1)))
+        return self._matrix
+
     def related_articles(self, seed_ids: list[str], max_articles_per_entity: int,
                          query_vector: "np.ndarray | None" = None,
                          relevance_threshold: float | None = None,
                          relevance_factor: float = 0.5,
-                         max_concepts: int | None = None
+                         max_concepts: int | None = None,
+                         query_limit: int = 0, query_threshold: float = 0.3,
+                         query_margin: float | None = None,
                          ) -> tuple[dict[str, float], dict[str, set[str]]]:
         """Artículos conectados a las semillas por conceptos compartidos.
 
@@ -128,11 +171,15 @@ class KnowledgeGraph:
             seed_entities, query_vector, relevance_threshold, relevance_factor,
             max_concepts,
         )
-        return self._expand(kept, relevance, max_articles_per_entity)
+        direct = self.query_entities(query_vector, query_threshold, query_limit, query_margin)
+        relevance.update(direct)
+        return self._expand(kept | set(direct), relevance, max_articles_per_entity)
 
     def explain_related(self, seed_ids: list[str], max_articles_per_entity: int,
                         query_vector, relevance_threshold: float | None,
-                        relevance_factor: float, max_concepts: int | None = None) -> dict:
+                        relevance_factor: float, max_concepts: int | None = None,
+                        query_limit: int = 0, query_threshold: float = 0.3,
+                        query_margin: float | None = None) -> dict:
         """Como ``related_articles`` pero devolviendo también los pasos
         intermedios (para la página de testing): entidades semilla con su
         relevancia, el corte aplicado y qué se conservó."""
@@ -141,9 +188,13 @@ class KnowledgeGraph:
             seed_entities, query_vector, relevance_threshold, relevance_factor,
             max_concepts,
         )
-        weights, concepts = self._expand(kept, scores, max_articles_per_entity)
+        direct = self.query_entities(query_vector, query_threshold, query_limit, query_margin)
+        relevance = {**scores, **direct}
+        weights, concepts = self._expand(kept | set(direct), relevance,
+                                         max_articles_per_entity)
         return {
             "seed_entities": scores,          # {entidad: relevancia}  (None si sin vector)
+            "query_entities": direct,         # {entidad: relevancia}, entrada directa
             "cutoff": cutoff,
             "kept": kept,
             "weights": weights,

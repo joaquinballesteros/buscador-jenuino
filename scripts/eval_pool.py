@@ -26,16 +26,27 @@ from jenui.config import Settings
 from jenui.evaluation import JudgmentStore
 from jenui.search.searcher import Searcher
 
-#: Configuraciones que se comparan: cambios sobre config.json -> search.
+#: Configuraciones que se comparan: cambios sobre config.json -> search. Cada
+#: una fija todos los parámetros que la distinguen, para que su nombre siga
+#: significando lo mismo aunque cambien los valores por defecto de config.json.
+ANTERIOR = {  # hasta el 2026-11-05: 3 semillas, límite 12, sin normalizar
+    "normalizacion": "ninguna", "peso_texto": 0.85, "peso_grafo": 0.3,
+    "n_semillas": 3, "margen_semilla": None, "max_articulos_por_entidad": 12,
+    "conceptos_consulta": 0,
+}
+NUEVA = {  # semillas por margen, entrada directa desde la consulta, minmax
+    "normalizacion": "minmax", "peso_texto": 0.6, "peso_grafo": 0.4,
+    "n_semillas": 10, "margen_semilla": 0.05, "max_articulos_por_entidad": 30,
+    "conceptos_consulta": 8, "umbral_concepto_consulta": 0.3,
+    "margen_concepto_consulta": 0.06,
+}
 VARIANTS = {
-    "texto": {"peso_grafo": 0.0},
-    "grafo": {"normalizacion": "ninguna"},
-    "minmax": {"normalizacion": "minmax"},
-    "rrf": {"normalizacion": "rrf"},
-    # max_articulos_por_entidad (12) se calibró con 254 artículos; con 1920 deja
-    # fuera conceptos como "Brecha de Género" (27) o "ChatGPT" (20)
-    "minmax_lim30": {"normalizacion": "minmax", "max_articulos_por_entidad": 30},
-    "minmax_lim90": {"normalizacion": "minmax", "max_articulos_por_entidad": 90},
+    "texto": {**NUEVA, "peso_grafo": 0.0},
+    "anterior": ANTERIOR,
+    "nueva": NUEVA,
+    "nueva_sin_consulta": {**NUEVA, "conceptos_consulta": 0},
+    "nueva_grafo_0.2": {**NUEVA, "peso_texto": 0.8, "peso_grafo": 0.2},
+    "nueva_grafo_0.6": {**NUEVA, "peso_texto": 0.4, "peso_grafo": 0.6},
 }
 
 

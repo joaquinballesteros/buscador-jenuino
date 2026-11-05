@@ -6,6 +6,33 @@ en el [README](../README.md).
 
 ---
 
+## 2026-11-05 · Más peso y más alcance para el grafo
+
+Motivo: para "carga cognitiva" solo el primer resultado mostraba "Relacionado
+por". El grafo solo se recorría desde los conceptos de las 3 mejores semillas
+por texto, y ninguna trataba del tema: el concepto *Carga Cognitiva* (2
+artículos) y *Externalización Cognitiva* existían pero nunca entraban.
+
+Cambios (sin juicios todavía, así que se cambian los valores por defecto y el
+banco decidirá):
+
+| Parámetro | Antes | Ahora |
+|---|---|---|
+| Semillas | siempre las 3 primeras | las que quedan a menos de 0,05 de la mejor, hasta 10 (mediana 7-8 en el banco) |
+| Entrada directa desde la consulta | — | hasta 8 conceptos, ≥0,30 y a menos de 0,06 del más afín |
+| `max_articulos_por_entidad` | 12 | 30 |
+| Ranking | `ninguna`, 0,85 / 0,3 | `minmax`, texto 0,6 / grafo 0,4 |
+
+Efecto: "carga cognitiva", 5 de 8 resultados con relación (antes 1), entre
+ellos *O grande para aprender* (externalización cognitiva) y *Pseudocódigo y
+Java* (carga cognitiva); "ABP", 8 de 8 sobre ABP.
+
+Candidatos regenerados desde cero con 6 configuraciones (texto, anterior,
+nueva, nueva sin entrada directa, nueva con grafo 0,2 y 0,6): 382, entre 11 y
+19 por consulta.
+
+---
+
 ## 2026-11-05 · Máquina virtual del SCI: `jenui.uma.es`
 
 El SCI ha creado `jenui.uma.es` (Rocky Linux 9, solo IPv6, salida por proxy,

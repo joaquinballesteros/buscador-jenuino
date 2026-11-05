@@ -427,17 +427,20 @@ Si cambias la ontología, reconstruye el grafo (borra `rag_storage/`).
 | `pooling` | agregación de fragmentos: `max` / `mean_topk` / `hybrid` | `hybrid` |
 | `pooling_k` | nº de mejores fragmentos para la media | `5` |
 | `pooling_alpha` | peso del máximo en el híbrido: `α·max + (1−α)·media` | `0.5` |
-| `peso_texto` | peso de la similitud vectorial | `0.85` |
-| `peso_grafo` | peso del empuje por conceptos compartidos | `0.3` |
-| `normalizacion` | escala común de texto y grafo: `ninguna` / `minmax` / `rrf` | `ninguna` |
+| `peso_texto` | peso de la similitud vectorial | `0.6` |
+| `peso_grafo` | peso del empuje por conceptos compartidos | `0.4` |
+| `normalizacion` | escala común de texto y grafo: `ninguna` / `minmax` / `rrf` | `minmax` |
 | `candidatos_normalizacion` | mejores candidatos por texto entre los que se reescala (`minmax`) | `50` |
 | `rrf_k` | constante de Reciprocal Rank Fusion (`rrf`) | `60` |
-| `n_semillas` | cuántos resultados top siembran la expansión por grafo | `3` |
+| `n_semillas` | tope de resultados que siembran la expansión por grafo | `10` |
+| `margen_semilla` | entran como semillas los que quedan a menos de este margen del mejor (`null` = siempre las `n_semillas` primeras) | `0.05` |
 | `umbral_semilla` | similitud mínima para que un artículo sea semilla (evita que uno genérico arrastre conceptos ajenos) | `0.5` |
 | `umbral_concepto` | suelo absoluto de afinidad concepto↔consulta (espacio centrado) | `0.2` |
 | `factor_relativo` | corte adaptativo por consulta: `media + factor·desviación` | `0.5` |
 | `max_conceptos_semilla` | tope de conceptos de las semillas que se usan (los más afines) | `20` |
-| `max_articulos_por_entidad` | una entidad en más de N artículos se considera genérica y se ignora | `12` |
+| `max_articulos_por_entidad` | una entidad en más de N artículos se considera genérica y se ignora | `30` |
+| `conceptos_consulta` | conceptos que entran al grafo **directamente por afinidad con la consulta**, sin pasar por las semillas (`0` = desactivado) | `8` |
+| `umbral_concepto_consulta` / `margen_concepto_consulta` | suelo absoluto y margen respecto al más afín para esos conceptos | `0.3` / `0.06` |
 | `corregir_ortografia` | corrige erratas de la consulta con el vocabulario del corpus | `true` |
 | `tipos_entidad_descartados` | **red de seguridad**: tipos que se filtran al leer el grafo | lista de 28 |
 | `patrones_entidad_descartados` | descarta por **nombre** (regex): universidades, escuelas, facultades, departamentos que el LLM clasificó con un tipo válido | 4 patrones |

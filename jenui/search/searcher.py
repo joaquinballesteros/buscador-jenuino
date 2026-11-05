@@ -125,6 +125,7 @@ class Searcher:
                 relevance_threshold=config.get("umbral_concepto", 0.10),
                 relevance_factor=config.get("factor_relativo", 0.5),
                 max_concepts=config.get("max_conceptos_semilla", 20),
+                **self._query_concept_params(config),
             )
 
         ranker = Ranker.from_config(config)
@@ -193,9 +194,15 @@ class Searcher:
                 query_vector, config.get("umbral_concepto", 0.10),
                 config.get("factor_relativo", 0.5),
                 max_concepts=config.get("max_conceptos_semilla", 20),
+                **self._query_concept_params(config),
             )
             graph_weights, shared_concepts = info["weights"], info["concepts"]
             graph_stage["cutoff"] = info["cutoff"]
+            graph_stage["query_entities"] = [
+                {"entity": e, "relevance": round(s, 4),
+                 "articles": len(self.graph.articles_of(e))}
+                for e, s in sorted(info["query_entities"].items(), key=lambda kv: -kv[1])
+            ]
             entities = sorted(
                 ({"entity": e, "relevance": (round(s, 4) if s is not None else None),
                   "kept": e in info["kept"]}
@@ -255,17 +262,32 @@ class Searcher:
     def _label(self, detail: dict) -> dict:
         return {**detail, **self._brief(detail["article_id"])}
 
+    @staticmethod
+    def _query_concept_params(config: dict) -> dict:
+        """Entrada directa al grafo desde la consulta (0 conceptos = desactivada)."""
+        return {
+            "query_limit": config.get("conceptos_consulta", 0),
+            "query_threshold": config.get("umbral_concepto_consulta", 0.3),
+            "query_margin": config.get("margen_concepto_consulta"),
+        }
+
     def _pick_seeds(self, text_hits: dict, config: dict) -> list[str]:
         """Artículos que siembran la expansión por grafo (opción A).
 
-        Se toman pocos y solo si se parecen de verdad a la consulta: un artículo
-        genérico que entra al fondo del ranking arrastraría sus conceptos ajenos
-        al tema. Se conserva al menos el mejor, para no perder el grafo del todo.
+        Solo los que se parecen de verdad a la consulta: un artículo genérico del
+        fondo del ranking arrastraría conceptos ajenos al tema. Entran los que
+        superan ``umbral_semilla`` y, si hay ``margen_semilla``, los que quedan a
+        menos de ese margen del mejor (las similitudes de este corpus están
+        comprimidas, así que un umbral absoluto apenas filtra), como mucho
+        ``n_semillas``. Se conserva al menos el mejor.
         """
         ranked = sorted(text_hits.items(), key=lambda item: item[1].score,
                         reverse=True)
         n_seeds = config.get("n_semillas", 3)
         floor = config.get("umbral_semilla", 0.5)
+        margin = config.get("margen_semilla")
+        if margin is not None and ranked:
+            floor = max(floor, ranked[0][1].score - margin)
         seeds = [aid for aid, hit in ranked[:n_seeds] if hit.score >= floor]
         if not seeds and ranked:
             seeds = [ranked[0][0]]

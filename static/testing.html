@@ -129,6 +129,9 @@ function stageGraph(g){
       corte de relevancia: <b>${g.cutoff==null?'—':g.cutoff.toFixed(3)}</b>
       (media + factor·desviación, en espacio centrado)</div>
     <div class="meta-line">semillas: ${seeds}</div>
+    <div class="meta-line">conceptos elegidos por la consulta: ${(g.query_entities||[]).length
+      ? g.query_entities.map(e=>`<span class="chip concept">${esc(e.entity)} <span class="note">${e.relevance.toFixed(2)} · ${e.articles} art.</span></span>`).join(" ")
+      : '<span class="note">ninguno</span>'}</div>
     <h3 style="font-size:.85rem;margin:14px 0 4px">Conceptos de las semillas (afinidad con la consulta)
       <span class="note" style="font-weight:400">— ${g.seed_entities_kept} usadas de ${g.seed_entities_total}${g.seed_entities_total>g.seed_entities.length?`, mostrando ${g.seed_entities.length}`:''}</span></h3>
     <table><thead><tr><th>¿usada?</th><th>relevancia</th><th>concepto</th></tr></thead>

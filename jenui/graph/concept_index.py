@@ -71,6 +71,10 @@ class ConceptIndex:
         """Lleva la consulta al mismo espacio centrado que los conceptos."""
         return self._center(query_vector.reshape(1, -1))[0]
 
+    def vector(self, concept: str) -> "np.ndarray | None":
+        """Vector centrado del concepto, o ``None`` si no está en el índice."""
+        return self._by_name.get(AliasResolver.normalize(concept))
+
     def relevances(self, concepts, query_vector: np.ndarray) -> dict[str, float]:
         """Afinidad de cada concepto con la consulta (solo los que tienen vector)."""
         centered_query = self.center_query(query_vector)

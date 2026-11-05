@@ -126,12 +126,24 @@ consulta
    ├─ VectorIndex.score_articles     ── producto matricial sobre los fragmentos
    │     └─ pooling híbrido: alpha·mejor_fragmento + (1-alpha)·media_top-k
    │        (el máximo da recall; la media premia la cobertura del tema)
-   ├─ KnowledgeGraph.related_articles ── expande desde las N mejores semillas
+   ├─ KnowledgeGraph.related_articles ── expande desde las semillas (a menos de
+   │     margen_semilla del mejor) y desde los conceptos más afines a la consulta
    │     └─ filtra los conceptos de las semillas por afinidad con la consulta:
    │        suelo absoluto → corte relativo (media+factor·desv) → tope top-N
    └─ Ranker  →  peso_texto · similitud + peso_grafo · conceptos compartidos
          (normalizacion: ninguna | minmax | rrf, para que los pesos sean comparables)
 ```
+
+**Dos entradas al grafo.** La expansión parte de los conceptos de las
+semillas, así que si el texto no encuentra buenas semillas el grafo no puede
+ayudar (para "carga cognitiva" las semillas trataban de otra cosa y el concepto
+*Carga Cognitiva* nunca entraba). Por eso `KnowledgeGraph.query_entities` añade
+una segunda entrada: los conceptos del grafo más afines a la propia consulta,
+comparados en el espacio centrado del índice de conceptos. Tanto las semillas
+como estos conceptos se eligen con **umbral relativo** (a menos de un margen del
+mejor) más un suelo absoluto y un tope, porque las similitudes de este corpus
+están comprimidas y un umbral fijo o deja pasar ruido o pierde lo bueno según
+la consulta.
 
 **Normalización.** La similitud de los buenos resultados se concentra en unas
 centésimas (0,66-0,70 en un top-15 típico) mientras que el empuje del grafo va
