@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#0f1115; --card:#181b22; --border:#272b34; --fg:#e8eaed;
-    --muted:#9aa0ab; --accent:#6ea8fe; --chipf2025:#232a38; --chip-fg:#a9c7ff;
+    --muted:#9aa0ab; --accent:#6ea8fe; --chip:#232a38; --chip-fg:#a9c7ff;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -43,6 +43,9 @@
   .kwlabel{color:var(--muted);font-size:.7rem;margin-top:10px;text-transform:uppercase;letter-spacing:.04em}
   .fix{color:var(--muted);font-size:.9rem;margin:4px 0 14px}
   .fix b{color:var(--fg)}
+  .warn{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.45);color:#fde68a;
+        border-radius:10px;padding:10px 14px;margin:4px 0 14px;font-size:.9rem}
+  .warn b{color:#fef3c7}
   .fix a{color:var(--accent);text-decoration:none}
   .score{float:right;font-size:.78rem;color:var(--muted)}
   .actions{margin-top:12px;display:flex;gap:8px;align-items:center}
@@ -105,8 +108,11 @@ function render(data){
   const fix = data.corregido ? `<div class="fix">Mostrando resultados para
       <b>${esc(data.corregido)}</b> · <a href="#" id="raw">buscar
       «${esc(data.original)}» tal cual</a></div>` : "";
-  if(!data.results.length){ results.innerHTML = fix + `<div class="empty">Sin resultados.</div>`; return; }
-  results.innerHTML = fix + data.results.map(r => `
+  const warn = data.aviso ? `<div class="warn">⚠️ <b>Similitud baja</b> (la del mejor resultado es
+      ${data.aviso.similitud_maxima.toFixed(2)}). Es probable que en las JENUI no haya artículos sobre
+      este tema: estos son los más cercanos, pero revísalos con cautela.</div>` : "";
+  if(!data.results.length){ results.innerHTML = fix + warn + `<div class="empty">Sin resultados.</div>`; return; }
+  results.innerHTML = fix + warn + data.results.map(r => `
     <div class="card">
       <span class="score" title="Similitud semántica (coseno) entre tu consulta y el artículo: es el valor real, no un porcentaje relativo. Los resultados se ordenan por esta similitud más un pequeño bonus si el artículo comparte conceptos del grafo con el tema.">similitud ${r.text_score.toFixed(2)}</span>
       <h3><a href="${r.pdf}" target="_blank">${esc(r.title)}</a></h3>

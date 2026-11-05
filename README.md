@@ -77,6 +77,7 @@ Abre <http://127.0.0.1:8000>, busca (p. ej. *"gamificación en programación"*) 
 Cada tarjeta muestra, de arriba abajo:
 
 - **Similitud** (arriba a la derecha) — similitud semántica real (coseno) entre tu consulta y el artículo. No es un porcentaje relativo: los resultados se ordenan por esta similitud más un pequeño bonus si el artículo comparte conceptos del grafo con el tema, y la lista se corta donde los artículos dejan de destacar estadísticamente sobre los no relevantes (ver [`corte`](#search--ranking)).
+- **Aviso de similitud baja** *(franja amarilla, sobre la lista)* — aparece cuando ni el mejor resultado se parece de verdad a tu consulta: probablemente las JENUI no tratan ese tema. Los resultados se muestran igualmente, pero conviene leerlos con cautela.
 - **Título** — enlaza al PDF.
 - **Autores · JENUI año · categoría** — metadatos, en gris.
 - **Resumen** del artículo.
@@ -433,6 +434,7 @@ Si cambias la ontología, reconstruye el grafo (borra `rag_storage/`).
 | `normalizacion` | cómo se combinan texto y grafo: `bonus` (similitud real + bonus acotado del grafo) / `minmax` / `rrf` / `ninguna` | `bonus` |
 | `bonus_grafo` / `referencia_grafo` | modo `bonus`: s = similitud + bonus · min(1, empuje / referencia) | `0.05` / `1.0` |
 | `corte` | dónde cortar la lista: `sorpresa` (teoría de valores extremos) o `umbral` (`umbral_resultado`) | `sorpresa` |
+| `umbral_aviso_similitud` | si la similitud del mejor resultado es menor, se avisa de que probablemente JENUI no trata el tema (no se ocultan los resultados) | `0.52` |
 | `umbral_sorpresa` / `profundidad_sorpresa` | entran los de sorpresa −log p ≥ umbral (3 = p 0,05), modelando la cola de los N primeros | `3.0` / `200` |
 | `candidatos_normalizacion` | mejores candidatos por texto entre los que se reescala (`minmax`); con pocos, actúa como un tope encubierto | `200` |
 | `rrf_k` | constante de Reciprocal Rank Fusion (`rrf`) | `60` |

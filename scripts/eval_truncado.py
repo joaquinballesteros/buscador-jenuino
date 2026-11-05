@@ -121,6 +121,16 @@ def main() -> None:
         print(f"{method:17} {label + ' ' + str(best_all):>22} | {f:8.3f} {p:9.3f} {r:7.3f} {n:8.1f} | "
               f"{empty}/{len(ajenas)}")
 
+    # aviso de similitud baja (no oculta resultados; solo avisa)
+    plain = Searcher(base)
+    warned_bench = sum(bool(plain.search(q["consulta"])["aviso"]) for q in queries)
+    warned_out = sum(bool(plain.search(q["consulta"])["aviso"]) for q in ajenas)
+    threshold = base.search.get("umbral_aviso_similitud")
+    print(f"\nAviso de similitud baja (umbral {threshold}): consultas del banco con aviso "
+          f"{warned_bench}/{len(queries)} (deberían ser 0) · ajenas con aviso {warned_out}/{len(ajenas)}")
+    report["aviso_similitud_baja"] = {"umbral": threshold, "banco": warned_bench,
+                                      "ajenas": warned_out}
+
     out = store.queries_file.parent / "resultados_truncado.json"
     out.write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"\nF1 (VC): validación cruzada dejando una consulta fuera; el parámetro mostrado es el "

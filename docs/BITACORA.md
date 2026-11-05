@@ -6,6 +6,26 @@ en el [README](../README.md).
 
 ---
 
+## 2026-11-05 · Aviso de similitud baja en lugar de ocultar resultados
+
+"bocadillos de chorizo" devolvía 8 resultados: la sorpresa es relativa a cada
+consulta y siempre hay algún artículo (a menudo con poco texto, como "El
+proyecto MEIIGA") que destaca un poco sobre los demás. La similitud absoluta
+del mejor sí lo distingue: banco ≥ 0,534; consultas ajenas ≤ 0,503 (esta,
+0,375).
+
+Decisión del usuario: no ocultar los resultados, sino **avisar** de que la
+similitud es baja y conviene leerlos con cautela. Con un margen tan estrecho,
+un aviso es más prudente que esconder, y una coincidencia parcial puede servir.
+El aviso es por consulta (similitud del mejor < `umbral_aviso_similitud`, 0,52),
+no por artículo: las siglas tienen resultados relevantes en 0,50-0,53.
+Verificado: 0 de 28 consultas del banco con aviso; 12 de 12 ajenas con aviso.
+
+De paso: la variable de color de las etiquetas de la portada se llamaba
+`--chipf2025` en vez de `--chip` y las etiquetas salían sin fondo.
+
+---
+
 ## 2026-11-05 · Similitud real y corte con fundamento: teoría de valores extremos
 
 **Problema** (detectado por el usuario): el reescalado mín-máx pierde la

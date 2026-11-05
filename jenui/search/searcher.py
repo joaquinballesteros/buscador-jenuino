@@ -143,6 +143,7 @@ class Searcher:
             "query": query,
             "corregido": correction.corrected if applied else None,
             "original": correction.original if applied else None,
+            "aviso": self._low_similarity_warning(text_hits, config),
             "graph_ready": self.graph.is_ready,
             "results": [r.to_dict() for r in results],
         }
@@ -249,6 +250,7 @@ class Searcher:
             "correction": {"original": correction.original,
                            "corrected": correction.corrected, "applied": applied},
             "used_query": used_query,
+            "aviso": self._low_similarity_warning(text_hits, config),
             "pooling": pooling,
             "weights": {"texto": w_texto, "grafo": w_grafo,
                         "normalizacion": normalizacion},
@@ -265,6 +267,27 @@ class Searcher:
 
     def _label(self, detail: dict) -> dict:
         return {**detail, **self._brief(detail["article_id"])}
+
+    @staticmethod
+    def _low_similarity_warning(text_hits: dict, config: dict) -> dict | None:
+        """Aviso cuando ni el mejor artículo se parece de verdad a la consulta.
+
+        El corte por sorpresa es relativo a cada consulta: en una consulta ajena
+        a JENUI ("bocadillos de chorizo") siempre hay algún artículo que destaca
+        un poco sobre los demás. La similitud absoluta del mejor sí lo distingue
+        (predictor de calidad de la consulta basado en la puntuación máxima): en
+        el banco, el mejor supera 0,534; en consultas ajenas, no pasa de 0,503.
+        No se ocultan los resultados (el margen es estrecho y una coincidencia
+        parcial puede servir): se avisa para que se lean con cautela.
+        """
+        threshold = config.get("umbral_aviso_similitud")
+        if threshold is None or not text_hits:
+            return None
+        best = max(hit.score for hit in text_hits.values())
+        if best >= threshold:
+            return None
+        return {"tipo": "similitud_baja", "similitud_maxima": round(float(best), 3),
+                "umbral": threshold}
 
     def _cut(self, ranker: Ranker, text_hits: dict, graph_weights: dict,
              config: dict, top_k: int) -> tuple[list[tuple[str, float]], dict[str, float]]:

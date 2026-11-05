@@ -132,8 +132,9 @@ consulta
    │        suelo absoluto → corte relativo (media+factor·desv) → tope top-N
    ├─ Ranker  →  s = similitud + bonus · min(1, empuje del grafo / referencia)
    │     (en unidades reales de similitud: sin reescalar por consulta)
-   └─ SurpriseTruncator  →  la lista se corta donde la sorpresa −log p frente a la
-         cola de los no relevantes (Pareto generalizada) baja del umbral
+   ├─ SurpriseTruncator  →  la lista se corta donde la sorpresa −log p frente a la
+   │     cola de los no relevantes (Pareto generalizada) baja del umbral
+   └─ aviso de similitud baja  →  si ni el mejor resultado llega a umbral_aviso_similitud
 ```
 
 **Dos entradas al grafo.** La expansión parte de los conceptos de las
@@ -158,6 +159,15 @@ global, que falla con siglas). El reescalado mín-máx anterior se abandonó
 porque asigna siempre el máximo al mejor artículo: pierde la similitud
 absoluta, que distingue las consultas sin artículos pertinentes (las del banco
 superan 0,534; consultas ajenas a JENUI no pasan de 0,487).
+
+**Aviso de similitud baja.** La sorpresa es relativa a cada consulta: en una
+consulta ajena a JENUI ("bocadillos de chorizo") siempre hay algún artículo que
+destaca un poco sobre los demás. La similitud absoluta del mejor resultado sí
+lo distingue —es el predictor de calidad de consulta más simple, basado en la
+puntuación máxima—, así que si queda por debajo de `umbral_aviso_similitud`
+(0,52: banco ≥ 0,534, consultas ajenas ≤ 0,503) la respuesta lleva un `aviso`.
+No se ocultan los resultados: el margen es estrecho y una coincidencia parcial
+puede ser útil.
 
 **Normalización (modos minmax y rrf).** La similitud de los buenos resultados se concentra en unas
 centésimas (0,66-0,70 en un top-15 típico) mientras que el empuje del grafo va

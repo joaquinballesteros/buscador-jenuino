@@ -122,6 +122,8 @@
     "umbral_resultado": 0.4,
     "_comentario_corte": "Dónde cortar la lista. sorpresa: teoría de valores extremos (Surprise scoring, Bahri et al., SIGIR 2023): se ajusta una distribución de Pareto generalizada a la cola de las puntuaciones no relevantes de los profundidad_sorpresa primeros y entra cada resultado con sorpresa -log p >= umbral_sorpresa (3,0 = p 0,05; el valor definitivo se elige con el banco de evaluación). umbral: puntuación final >= umbral_resultado (solo con minmax o rrf).",
     "corte": "sorpresa",
+    "_comentario_aviso": "Aviso al usuario cuando la similitud del MEJOR artículo es menor que este umbral: probablemente JENUI no trata el tema y los resultados (que se muestran igualmente) deben leerse con cautela. El corte por sorpresa es relativo a la consulta y no lo detecta. Calibrado con 28 consultas del banco (mejor ≥ 0,534) y 13 ajenas (mejor ≤ 0,503); null = sin aviso.",
+    "umbral_aviso_similitud": 0.52,
     "umbral_sorpresa": 3.0,
     "profundidad_sorpresa": 200,
     "top_k": 100,
