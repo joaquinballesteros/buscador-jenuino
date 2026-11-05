@@ -33,7 +33,15 @@ buscador, **sin git** (decisión del usuario: los ficheros de datos son grandes)
    con el **mismo digest** que el índice (`7907646426…`); un embedding de
    prueba coincide con el local hasta la quinta cifra decimal.
 
-Cuando el SCI amplíe la memoria, arrancar es `systemctl enable --now jenui`.
+**En marcha en modo ahorro** (decisión del usuario, para no esperar a la
+ampliación): `JENUI_OLLAMA_KEEP_ALIVE=0` en
+`/etc/systemd/system/jenui.service.d/memoria.conf`, así que bge-m3 se carga y
+se libera en cada búsqueda. Medido desde fuera: búsquedas de **6-8 s**,
+`/evaluar` en **0,2 s** y su API en 0,04-0,06 s. El buscador ocupa ~540 MB;
+entre búsquedas quedan ~590 MB libres y ~1 GB de swap en uso.
+
+Al ampliar la RAM: `rm /etc/systemd/system/jenui.service.d/memoria.conf &&
+systemctl daemon-reload && systemctl restart jenui` (búsquedas de ~0,1 s).
 
 Pendiente detectado: `static/temas.html` llama a `/api/topics`, que no existe
 en la aplicación (llegó así con el commit `64d2002`).
