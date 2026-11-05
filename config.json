@@ -15,7 +15,7 @@
     "ollama": {
       "host": "http://localhost:11434",
       "num_ctx": 16384,
-      "_comentario_keep_alive": "Tiempo que Ollama mantiene bge-m3 en memoria tras una búsqueda (-1 = siempre, para que la primera búsqueda tras un rato no tarde segundos en recargarlo).",
+      "_comentario_keep_alive": "Tiempo que Ollama mantiene bge-m3 en memoria tras una búsqueda (-1 = siempre, para que la primera búsqueda tras un rato no tarde segundos en recargarlo). En un servidor con poca RAM, JENUI_OLLAMA_KEEP_ALIVE=0 lo libera tras cada búsqueda (cada una tarda unos segundos más).",
       "keep_alive": -1
     },
     "openai": {

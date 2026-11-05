@@ -28,7 +28,12 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         # Cuánto mantiene Ollama el modelo en memoria tras usarlo. Por defecto lo
         # descarga a los 5 min y la primera búsqueda tras un rato tarda segundos
         # en recargarlo; -1 lo deja siempre cargado (bge-m3 ocupa ~1,2 GB).
-        self._keep_alive = settings.get("providers.ollama.keep_alive", -1)
+        # JENUI_OLLAMA_KEEP_ALIVE lo cambia solo en un servidor concreto (p. ej.
+        # 0 en una máquina con poca RAM: cada búsqueda carga y libera el modelo).
+        self._keep_alive = settings.get(
+            "providers.ollama.keep_alive", -1, env="JENUI_OLLAMA_KEEP_ALIVE",
+            cast=lambda v: int(v) if v.lstrip("-").isdigit() else v,
+        )
 
     def embed(self, texts: list[str]) -> np.ndarray:
         response = self._client.embed(model=self.model, input=texts,
