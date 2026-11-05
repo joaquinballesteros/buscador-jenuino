@@ -11,7 +11,8 @@ raíz del proyecto:
                                    --fijo normalizacion=minmax
     python scripts/eval_metrics.py --min-evaluadores 2
 
-judged@10 es la fracción del top-10 con juicio: lo no juzgado cuenta como no
+La precisión de la lista (qué fracción de lo devuelto es relevante) mide el
+ruido cuando la lista se corta por umbral. judged@10 es la fracción del top-10 con juicio: lo no juzgado cuenta como no
 relevante, así que una configuración que trae muchos artículos nuevos sale
 penalizada. Si judged@10 baja de ~0,9, amplía el pool (eval_pool.py) y juzga
 lo nuevo antes de fiarte de la comparación.
@@ -31,7 +32,7 @@ from eval_pool import VARIANTS
 from jenui.config import Settings
 from jenui.evaluation import JudgmentStore
 from jenui.evaluation.metrics import (judged_at, krippendorff_alpha_ordinal,
-                                      ndcg_at, recall_at)
+                                      ndcg_at, precision, recall_at)
 from jenui.search.searcher import Searcher
 
 
@@ -103,19 +104,24 @@ def main() -> None:
 
     k = args.k
     results = {}
-    print(f"\n{'configuración':38} nDCG@{k}  recall@{k}  judged@{k}")
+    print(f"\n{'configuración':24} nDCG@{k}  recall@{k}  judged@{k} | lista: longitud  precisión  juzgada")
     for name, overrides in configurations(args).items():
         searcher = Searcher(base.with_overrides("search", overrides))
         rows = {}
         for q in queries:
-            ranking = [r["id"] for r in searcher.search(q["consulta"], top_k=k)["results"]]
+            full = [r["id"] for r in searcher.search(q["consulta"])["results"]]
             judged = qrels[q["id"]]
-            rows[q["id"]] = {"ndcg": ndcg_at(ranking, judged, k),
-                             "recall": recall_at(ranking, judged, k),
-                             "judged": judged_at(ranking, judged, k)}
-        mean = {m: statistics.mean(r[m] for r in rows.values()) for m in ("ndcg", "recall", "judged")}
+            rows[q["id"]] = {"ndcg": ndcg_at(full, judged, k),
+                             "recall": recall_at(full, judged, k),
+                             "judged": judged_at(full, judged, k),
+                             "longitud": len(full),
+                             "precision_lista": precision(full, judged),
+                             "juzgada_lista": judged_at(full, judged, len(full) or 1)}
+        mean = {m: statistics.mean(r[m] for r in rows.values())
+                for m in ("ndcg", "recall", "judged", "longitud", "precision_lista", "juzgada_lista")}
         results[name] = {"cambios": overrides, "media": mean, "por_consulta": rows}
-        print(f"{name:38} {mean['ndcg']:7.3f}  {mean['recall']:9.3f}  {mean['judged']:9.2f}")
+        print(f"{name:24} {mean['ndcg']:7.3f}  {mean['recall']:9.3f}  {mean['judged']:9.2f} | "
+              f"{mean['longitud']:13.1f}  {mean['precision_lista']:9.3f}  {mean['juzgada_lista']:7.2f}")
 
     out = store.queries_file.parent / "resultados.json"
     out.write_text(json.dumps({"k": k, "acuerdo": agree, "configuraciones": results},

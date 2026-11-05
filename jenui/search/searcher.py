@@ -92,7 +92,7 @@ class Searcher:
                spellcheck: bool | None = None) -> dict:
         self.refresh_if_changed()
         config = self._settings.search
-        top_k = top_k or config.get("top_k", 15)
+        top_k = top_k or config.get("top_k", 100)
         do_correct = (config.get("corregir_ortografia", True)
                       if spellcheck is None else spellcheck)
 
@@ -129,7 +129,7 @@ class Searcher:
             )
 
         ranker = Ranker.from_config(config)
-        ranked = ranker.rank(text_hits, graph_weights, top_k)
+        ranked = self._above_threshold(ranker.rank(text_hits, graph_weights, top_k), config)
 
         results = [
             self._to_result(article_id, score, text_hits, shared_concepts)
@@ -155,7 +155,7 @@ class Searcher:
         """
         self.refresh_if_changed()
         config = self._settings.search
-        top_k = top_k or config.get("top_k", 15)
+        top_k = top_k or config.get("top_k", 100)
         if not self.index.is_ready:
             return {"error": "El índice full-text no existe."}
 
@@ -225,7 +225,7 @@ class Searcher:
         w_grafo = config.get("peso_grafo", 0.15)
         normalizacion = config.get("normalizacion", "ninguna")
         ranker = Ranker.from_config(config)
-        ranked = ranker.rank(text_hits, graph_weights, top_k)
+        ranked = self._above_threshold(ranker.rank(text_hits, graph_weights, top_k), config)
         signals = ranker.signals(text_hits, graph_weights)
         rank_stage = []
         for pos, (aid, final) in enumerate(ranked, 1):
@@ -263,10 +263,24 @@ class Searcher:
         return {**detail, **self._brief(detail["article_id"])}
 
     @staticmethod
+    def _above_threshold(ranked: list[tuple[str, float]], config: dict) -> list[tuple[str, float]]:
+        """Solo los resultados con puntuación final >= ``umbral_resultado``.
+
+        La lista se corta por relevancia, no por número: una consulta estrecha
+        devuelve pocos y una amplia, muchos (``top_k`` queda como tope de
+        seguridad). Solo tiene sentido con ``normalizacion`` minmax o rrf, que
+        dejan la puntuación en 0-1; ``null`` lo desactiva.
+        """
+        threshold = config.get("umbral_resultado")
+        if threshold is None:
+            return ranked
+        return [(a, s) for a, s in ranked if s >= threshold]
+
+    @staticmethod
     def _query_concept_params(config: dict) -> dict:
         """Entrada directa al grafo desde la consulta (0 conceptos = desactivada)."""
         return {
-            "query_limit": config.get("conceptos_consulta", 0),
+            "query_limit": config.get("conceptos_consulta", 0),   # 0 = no; null = sin tope
             "query_threshold": config.get("umbral_concepto_consulta", 0.3),
             "query_margin": config.get("margen_concepto_consulta"),
         }

@@ -423,23 +423,24 @@ Si cambias la ontología, reconstruye el grafo (borra `rag_storage/`).
 
 | Clave | Qué hace | Por defecto |
 |---|---|---|
-| `top_k` | resultados devueltos | `15` |
+| `umbral_resultado` | la lista se corta **por relevancia**: entran los de puntuación final ≥ umbral (0-1). Una consulta estrecha devuelve pocos y una amplia, muchos (en el banco, entre 3 y 40) | `0.4` |
+| `top_k` | solo tope de seguridad de la lista | `100` |
 | `pooling` | agregación de fragmentos: `max` / `mean_topk` / `hybrid` | `hybrid` |
 | `pooling_k` | nº de mejores fragmentos para la media | `5` |
 | `pooling_alpha` | peso del máximo en el híbrido: `α·max + (1−α)·media` | `0.5` |
 | `peso_texto` | peso de la similitud vectorial | `0.6` |
 | `peso_grafo` | peso del empuje por conceptos compartidos | `0.4` |
 | `normalizacion` | escala común de texto y grafo: `ninguna` / `minmax` / `rrf` | `minmax` |
-| `candidatos_normalizacion` | mejores candidatos por texto entre los que se reescala (`minmax`) | `50` |
+| `candidatos_normalizacion` | mejores candidatos por texto entre los que se reescala (`minmax`); con pocos, actúa como un tope encubierto | `200` |
 | `rrf_k` | constante de Reciprocal Rank Fusion (`rrf`) | `60` |
-| `n_semillas` | tope de resultados que siembran la expansión por grafo | `10` |
+| `n_semillas` | tope opcional de semillas (`null` = sin tope: decide `margen_semilla`) | `null` |
 | `margen_semilla` | entran como semillas los que quedan a menos de este margen del mejor (`null` = siempre las `n_semillas` primeras) | `0.05` |
 | `umbral_semilla` | similitud mínima para que un artículo sea semilla (evita que uno genérico arrastre conceptos ajenos) | `0.5` |
 | `umbral_concepto` | suelo absoluto de afinidad concepto↔consulta (espacio centrado) | `0.2` |
 | `factor_relativo` | corte adaptativo por consulta: `media + factor·desviación` | `0.5` |
-| `max_conceptos_semilla` | tope de conceptos de las semillas que se usan (los más afines) | `20` |
+| `max_conceptos_semilla` | tope opcional de conceptos de las semillas (`null` = sin tope: deciden los umbrales) | `null` |
 | `max_articulos_por_entidad` | una entidad en más de N artículos se considera genérica y se ignora | `30` |
-| `conceptos_consulta` | conceptos que entran al grafo **directamente por afinidad con la consulta**, sin pasar por las semillas (`0` = desactivado) | `8` |
+| `conceptos_consulta` | conceptos que entran al grafo **directamente por afinidad con la consulta**, sin pasar por las semillas: tope opcional (`null` = sin tope; `0` = desactivado) | `null` |
 | `umbral_concepto_consulta` / `margen_concepto_consulta` | suelo absoluto y margen respecto al más afín para esos conceptos | `0.3` / `0.06` |
 | `corregir_ortografia` | corrige erratas de la consulta con el vocabulario del corpus | `true` |
 | `tipos_entidad_descartados` | **red de seguridad**: tipos que se filtran al leer el grafo | lista de 28 |

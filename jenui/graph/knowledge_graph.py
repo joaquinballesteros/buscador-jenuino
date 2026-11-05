@@ -105,7 +105,7 @@ class KnowledgeGraph:
     def articles_of(self, entity: str) -> set[str]:
         return self.entity_to_articles.get(entity, set())
 
-    def query_entities(self, query_vector, threshold: float, limit: int,
+    def query_entities(self, query_vector, threshold: float, limit: int | None,
                        margin: float | None = None) -> dict[str, float]:
         """Conceptos del grafo más afines a la consulta, sin pasar por las semillas.
 
@@ -115,12 +115,12 @@ class KnowledgeGraph:
         semillas trataban de otra cosa y el concepto "Carga Cognitiva", presente
         en el grafo, nunca entraba. Aquí se comparan la consulta y todos los
         conceptos (espacio centrado del índice de conceptos) y se quedan los que
-        superan ``threshold`` y quedan a menos de ``margin`` del mejor, como mucho
-        ``limit``. Las afinidades están comprimidas (los buenos rondan 0,38-0,51,
+        superan ``threshold`` y quedan a menos de ``margin`` del mejor (``limit``
+        es un tope opcional; con ``None`` decide solo la similitud). Las afinidades están comprimidas (los buenos rondan 0,38-0,51,
         pero hay ruido hasta 0,46), así que un umbral fijo solo deja pasar ruido o
         pierde lo bueno según la consulta: el margen relativo se adapta a cada una.
         """
-        if query_vector is None or limit <= 0 or not self._concepts.is_available:
+        if query_vector is None or limit == 0 or not self._concepts.is_available:
             return {}
         names, matrix = self._concept_matrix()
         if not names:

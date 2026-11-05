@@ -130,8 +130,9 @@ consulta
    │     margen_semilla del mejor) y desde los conceptos más afines a la consulta
    │     └─ filtra los conceptos de las semillas por afinidad con la consulta:
    │        suelo absoluto → corte relativo (media+factor·desv) → tope top-N
-   └─ Ranker  →  peso_texto · similitud + peso_grafo · conceptos compartidos
-         (normalizacion: ninguna | minmax | rrf, para que los pesos sean comparables)
+   ├─ Ranker  →  peso_texto · similitud + peso_grafo · conceptos compartidos
+   │     (normalizacion: ninguna | minmax | rrf, para que los pesos sean comparables)
+   └─ umbral_resultado  →  la lista se corta por relevancia, no por número
 ```
 
 **Dos entradas al grafo.** La expansión parte de los conceptos de las
@@ -398,7 +399,8 @@ evaluacion/consultas.csv ─> eval_pool.py ─> candidatos.json ─> /evaluar �
   autenticación básica manda la cabecera `X-Remote-User`.
 - **Referencia**: la mediana de los evaluadores (`JudgmentStore.consensus`).
 - **Métricas** (`scripts/eval_metrics.py`): nDCG@10 con ganancia 2^g−1,
-  recall@10 (mediana ≥1) y judged@10 (fracción del top-10 con juicio: si baja,
+  recall@10 (mediana ≥1), **precisión de la lista completa** (la medida del
+  ruido cuando la lista se corta por umbral) y judged@10 (fracción del top-10 con juicio: si baja,
   hay que ampliar el pool antes de comparar). Acuerdo con el alfa de
   Krippendorff ordinal, global y por consulta; una consulta con poco acuerdo
   suele tener un criterio ambiguo.

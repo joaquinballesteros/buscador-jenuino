@@ -27,6 +27,18 @@ def recall_at(ranking: list[str], judged: dict[str, float], k: int = 10,
     return len(relevant & set(ranking[:k])) / len(relevant)
 
 
+def precision(ranking: list[str], judged: dict[str, float],
+              threshold: float = 1.0) -> float:
+    """Fracción de la lista que es relevante (mediana >= ``threshold``).
+
+    Es la medida del ruido cuando la lista se corta por umbral y no por número.
+    Lo no juzgado cuenta como no relevante: mira también judged_at sobre la lista.
+    """
+    if not ranking:
+        return 0.0
+    return sum(judged.get(a, 0.0) >= threshold for a in ranking) / len(ranking)
+
+
 def judged_at(ranking: list[str], judged: dict[str, float], k: int = 10) -> float:
     """Fracción del top-k que tiene juicio. Si es baja, la métrica es poco fiable."""
     top = ranking[:k]

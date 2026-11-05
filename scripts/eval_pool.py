@@ -29,19 +29,24 @@ from jenui.search.searcher import Searcher
 #: Configuraciones que se comparan: cambios sobre config.json -> search. Cada
 #: una fija todos los parámetros que la distinguen, para que su nombre siga
 #: significando lo mismo aunque cambien los valores por defecto de config.json.
-ANTERIOR = {  # hasta el 2026-11-05: 3 semillas, límite 12, sin normalizar
+ANTERIOR = {  # hasta el 2026-11-05: 3 semillas, límite 12, sin normalizar, 15 resultados
     "normalizacion": "ninguna", "peso_texto": 0.85, "peso_grafo": 0.3,
     "n_semillas": 3, "margen_semilla": None, "max_articulos_por_entidad": 12,
-    "conceptos_consulta": 0,
+    "conceptos_consulta": 0, "max_conceptos_semilla": 20,
+    "umbral_resultado": None, "top_k": 15,
 }
-NUEVA = {  # semillas por margen, entrada directa desde la consulta, minmax
-    "normalizacion": "minmax", "peso_texto": 0.6, "peso_grafo": 0.4,
-    "n_semillas": 10, "margen_semilla": 0.05, "max_articulos_por_entidad": 30,
-    "conceptos_consulta": 8, "umbral_concepto_consulta": 0.3,
-    "margen_concepto_consulta": 0.06,
+NUEVA = {  # todo por umbral de similitud, sin topes; lista cortada por relevancia
+    "normalizacion": "minmax", "candidatos_normalizacion": 200,
+    "peso_texto": 0.6, "peso_grafo": 0.4,
+    "n_semillas": None, "margen_semilla": 0.05, "max_articulos_por_entidad": 30,
+    "conceptos_consulta": None, "umbral_concepto_consulta": 0.3,
+    "margen_concepto_consulta": 0.06, "max_conceptos_semilla": None,
+    "umbral_resultado": 0.4, "top_k": 100,
 }
 VARIANTS = {
-    "texto": {**NUEVA, "peso_grafo": 0.0},
+    # referencia sin grafo: su top-10 (con umbral su lista sería la cola larga de
+    # similitudes de texto, que ninguna configuración real devuelve)
+    "texto": {**NUEVA, "peso_grafo": 0.0, "umbral_resultado": None, "top_k": 10},
     "anterior": ANTERIOR,
     "nueva": NUEVA,
     "nueva_sin_consulta": {**NUEVA, "conceptos_consulta": 0},
@@ -50,12 +55,26 @@ VARIANTS = {
 }
 
 
+def pooled(results: list[dict], overrides: dict, top: int, max_list: int) -> list[dict]:
+    """Lo que una configuración aporta al pool.
+
+    Con umbral_resultado, su lista entera (hasta ``max_list``): el ruido está en
+    la cola, y si no se juzga no se puede medir la precisión de la lista. Sin
+    umbral, los ``top`` primeros.
+    """
+    if overrides.get("umbral_resultado") is not None:
+        return results[:max_list]
+    return results[:top]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Pooling de candidatos para juzgar.")
     parser.add_argument("--variantes", nargs="+", choices=list(VARIANTS),
                         default=list(VARIANTS), help="configuraciones a combinar")
     parser.add_argument("--top", type=int, default=10,
-                        help="resultados de cada configuración que entran al pool")
+                        help="resultados que aporta al pool una configuración sin umbral")
+    parser.add_argument("--max-lista", type=int, default=40,
+                        help="tope de la lista que aporta una configuración con umbral")
     parser.add_argument("--semilla", type=int, default=42)
     args = parser.parse_args()
 
@@ -69,8 +88,9 @@ def main() -> None:
     for name in args.variantes:
         searcher = Searcher(base.with_overrides("search", VARIANTS[name]))
         for q in queries:
-            results = searcher.search(q["consulta"], top_k=args.top)["results"]
-            found[q["id"]].update(r["id"] for r in results)
+            results = searcher.search(q["consulta"])["results"]
+            chosen = pooled(results, VARIANTS[name], args.top, args.max_lista)
+            found[q["id"]].update(r["id"] for r in chosen)
         print(f"  {name}: hecho")
 
     pool = store.candidates()

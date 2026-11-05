@@ -6,6 +6,39 @@ en el [README](../README.md).
 
 ---
 
+## 2026-11-05 · Umbrales en vez de topes
+
+Criterio del usuario: "no importa si devuelve 50 artículos pertinentes; el
+problema es el ruido". Los topes (3 o 10 semillas, 8 o 20 conceptos, 15
+resultados) recortan lo pertinente y lo irrelevante por igual; lo que separa
+uno de otro es la similitud.
+
+Análisis previo, quitando los topes: el ruido está en la cola y es de un tipo
+concreto: artículos que **solo trae el grafo**, con texto muy lejano (puesto
+179-1.377 por texto) y un único concepto compartido que se desvía del tema
+(*Matemática Discreta* para "carga cognitiva" vía *Carga de Trabajo*). Su
+puntuación final es baja (0,10-0,22), frente a >0,4 de lo pertinente.
+
+Cambios:
+
+- Semillas, conceptos de la consulta y conceptos de las semillas: **solo
+  umbrales** (`n_semillas`, `conceptos_consulta`, `max_conceptos_semilla` a
+  `null`).
+- **La lista de resultados se corta por relevancia**: `umbral_resultado` 0,4
+  sobre la puntuación final (`top_k` 100, solo de seguridad). En el banco:
+  mediana 14 resultados, entre 3 y 40.
+- `candidatos_normalizacion` 50 → 200: con 50, la escala de `minmax` era un
+  tope encubierto (nada más allá del puesto 50 podía alcanzar el umbral).
+- Evaluación: las configuraciones con umbral aportan **su lista entera** al
+  pool (hasta 40), porque el ruido está en la cola; nueva métrica
+  **precisión de la lista** (qué fracción de lo devuelto es pertinente).
+  Pool regenerado: 621 candidatos, entre 10 y 40 por consulta.
+
+Ejemplo: "docencia de ciberseguridad" devuelve 4 resultados, los 4 sobre
+docencia de ciberseguridad.
+
+---
+
 ## 2026-11-05 · Más peso y más alcance para el grafo
 
 Motivo: para "carga cognitiva" solo el primer resultado mostraba "Relacionado
