@@ -10,6 +10,7 @@ from jenui.analysis.concept_source import ConceptCorpus, ConceptCorpusBuilder
 from jenui.analysis.topic_detector import Topic, TopicDetector
 from jenui.analysis.topic_evolution import CLASSES, TopicEvolution
 from jenui.analysis.topic_flow import TopicFlowBuilder
+from jenui.analysis.topic_review import ReviewSummary, TopicReview
 from jenui.config.settings import Settings
 from jenui.ingestion.corpus_repository import CorpusRepository
 
@@ -23,6 +24,10 @@ class AnalysisOptions:
     year_to: int | None = None
     resolution: float | None = None
     min_df: int | None = None
+    #: aplicar la revisión manual de revision_topics/ si existe
+    review: bool = True
+    #: escribir en revision_topics/ la plantilla con la detección automática
+    review_template: bool = False
 
 
 class TopicAnalysis:
@@ -64,6 +69,15 @@ class TopicAnalysis:
         )
         topics = detector.detect(corpus)
         log(f"Topics detectados: {len(topics)}")
+        review = TopicReview(self._settings.paths.topic_review_dir)
+        summary = None
+        if options.review_template:
+            if review.exists():
+                raise SystemExit(f"Ya hay una revisión en {review.folder}. Muévela o bórrala "
+                                 "si de verdad quieres empezar de cero.")
+        elif options.review and review.exists():
+            topics, summary = review.apply(topics, corpus, detector)
+            self._log_review(summary, review, log)
 
         evolution = TopicEvolution(corpus, self._params.get("ventana_suavizado", 3),
                                    self._params.get("clasificacion"))
@@ -84,6 +98,11 @@ class TopicAnalysis:
             f"{len(flow.links)} enlaces")
 
         topic_rows = [self._topic_row(t, corpus, evolution, citations) for t in topics]
+        if options.review_template:
+            written = review.write_template(topics, corpus,
+                                            {r["id"]: r["clase"] for r in topic_rows},
+                                            detector.min_df)
+            log("Plantilla de revisión: " + ", ".join(str(p) for p in written))
         emerging = evolution.emerging_concepts(detector.min_df)
         totals = corpus.year_totals()
 
@@ -113,6 +132,7 @@ class TopicAnalysis:
                     "clasificacion": evolution.params,
                     "flujo": flow_params,
                 },
+                "revision": asdict(summary) if summary else None,
                 "citas": ({"citas_jenui": citations.n_edges,
                            "articulos_con_referencias": citations.n_citing}
                           if citations else None),
@@ -143,7 +163,9 @@ class TopicAnalysis:
 
         row = {
             "id": topic.id,
-            "label": topic.label,
+            "label": topic.name or topic.label,
+            "etiqueta_automatica": topic.label,
+            "grupo": topic.group,
             "conceptos": [corpus.label(c) for c in topic.concepts[:20]],
             "n_conceptos": len(topic.concepts),
             "n_articulos": len(topic.articles),
@@ -168,6 +190,25 @@ class TopicAnalysis:
                 "fraccion_citan_pioneros": stats.fraccion_citan_pioneros,
             }
         return row
+
+    @staticmethod
+    def _log_review(summary: ReviewSummary, review: TopicReview, log) -> None:
+        s = summary
+        log(f"Revisión manual ({review.folder.name}/): {s.topics_detectados} → "
+            f"{s.topics_finales} topics · {s.fusionados} fusionados · {s.descartados} "
+            f"descartados · {s.nuevos} nuevos · {s.con_nombre} con nombre")
+        log(f"  conceptos: {s.conceptos_movidos} movidos · {s.conceptos_quitados} quitados · "
+            f"{s.conceptos_anadidos} añadidos")
+        if s.conceptos_desconocidos:
+            log(f"  ⚠ {len(s.conceptos_desconocidos)} conceptos de {review.concepts_file.name} "
+                "no están en el corpus: " + "; ".join(s.conceptos_desconocidos[:10]))
+        if s.conceptos_sin_revisar:
+            log(f"  ⚠ {s.conceptos_sin_revisar} conceptos que la detección pone en un topic no "
+                f"aparecen en {review.concepts_file.name} (¿ha cambiado el grafo?); "
+                "se quedan fuera. --sin-revision muestra la detección automática.")
+        if s.topics_vacios:
+            log("  ⚠ topics sin artículos (ninguno tiene dos de sus conceptos): "
+                + ", ".join(s.topics_vacios))
 
     @staticmethod
     def _article(article_id: str, corpus: ConceptCorpus) -> dict:

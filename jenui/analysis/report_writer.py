@@ -46,7 +46,7 @@ class ReportWriter:
         for t in result["topics"]:
             citas = t.get("citas") or {}
             rows.append({
-                "id": t["id"], "topic": t["label"], "clase": t["clase"],
+                "id": t["id"], "topic": t["label"], "grupo": t["grupo"], "clase": t["clase"],
                 "tendencia": t["tendencia"], "articulos": t["n_articulos"],
                 "anio_primero": t["anio_primero"], "anio_inicio": t["anio_inicio"],
                 "anio_pico": t["anio_pico"], "pico_pct": round(100 * t["pico"], 2),
@@ -56,6 +56,7 @@ class ReportWriter:
                 "citas_internas": citas.get("citas_internas", ""),
                 "fraccion_citan_pioneros": self._round(citas.get("fraccion_citan_pioneros")),
                 "conceptos": "; ".join(t["conceptos"]),
+                "etiqueta_automatica": t["etiqueta_automatica"],
             })
         return self._csv("topics.csv", rows)
 
@@ -65,7 +66,8 @@ class ReportWriter:
             serie = t["serie"]
             for year, count, share, smooth in zip(serie["years"], serie["counts"],
                                                   serie["share"], serie["smooth"]):
-                rows.append({"id": t["id"], "topic": t["label"], "clase": t["clase"],
+                rows.append({"id": t["id"], "topic": t["label"], "grupo": t["grupo"],
+                             "clase": t["clase"],
                              "anio": year, "articulos": count,
                              "prevalencia": round(share, 4),
                              "prevalencia_suavizada": round(smooth, 4)})

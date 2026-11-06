@@ -1,0 +1,523 @@
+topic,concepto,articulos
+T01,Espacio Europeo de Educación Superior,212
+T01,Plan de Estudios,151
+T01,Competencias,44
+T01,Créditos ECTS,13
+T01,Competencias Específicas,9
+T01,Evaluación de Competencias,17
+T01,Carga de Trabajo,5
+T01,Guía Docente,13
+T01,Diseño Curricular,12
+T01,Desarrollo de Competencias,8
+T01,Material Didáctico,5
+T01,Interacción Persona-Ordenador,7
+T01,Perfil Profesional,4
+T01,Currículo,7
+T01,Competencia Transversal,5
+T01,Declaración de Bolonia,5
+T01,Movilidad Estudiantil,5
+T01,ANECA,6
+T01,Currículum,4
+T01,Demanda Laboral,4
+T01,Tecnología Informática,4
+T01,Aprendizaje Centrado en el Estudiante,4
+T01,Contenidos,4
+T01,Diseño de Asignaturas,4
+T01,ECTS,4
+T01,Estilo de Aprendizaje,4
+T01,Licenciatura en Documentación,4
+T01,Aprendizaje Significativo,10
+T01,Planificación,7
+T01,Acción Tutorial,5
+T01,Asignaturas de Programación,5
+T01,Crédito ECTS,5
+T01,Sistema de Créditos Europeos,5
+T01,Último Curso,5
+T01,Abstracción,7
+T01,Planes de Estudios,8
+T02,Autoevaluación,54
+T02,Evaluación Continua,76
+T02,Evaluación Formativa,24
+T02,Coevaluación,10
+T02,Aprendizaje entre Iguales,8
+T02,Evaluación Sumativa,5
+T02,Trabajo Colaborativo,14
+T02,Revisión por Pares,5
+T02,Autoaprendizaje,8
+T02,Evaluación entre Iguales,5
+T02,Análisis Crítico,6
+T02,Resolución de Problemas,38
+T02,Competencia,13
+T02,Examen Final,6
+T02,Aprendizaje Profundo,9
+T02,Estudio Empírico,4
+T02,Evaluación Docente,4
+T02,Fundamentos de la Programación,4
+T02,Sistemas Multiagente,5
+T03,Sostenibilidad,18
+T03,Competencias Transversales,50
+T03,Trabajo Fin de Grado,23
+T03,Responsabilidad Social,6
+T03,Ética,7
+T03,Ética Profesional,9
+T03,Competencias Profesionales,24
+T03,Aprendizaje-Servicio,12
+T03,Compromiso Social,9
+T03,Empleabilidad,11
+T03,Competencias Genéricas,11
+T03,Trabajo de Fin de Grado,12
+T03,Competencias Técnicas,7
+T03,Trabajo Final de Grado,6
+T03,Sostenibilidad y Compromiso Social,4
+T03,Trabajo Fin de Máster,4
+T03,Comercio Electrónico,8
+T03,Prácticas en Empresa,5
+T03,Liderazgo,10
+T03,Trabajo Fin de Carrera,6
+T03,Videojuegos,6
+T03,Coordinación Docente,9
+T03,Trabajo Cooperativo,10
+T04,Primer Curso,116
+T04,Ingeniería Técnica en Informática de Gestión,34
+T04,Ingeniería Técnica en Informática de Sistemas,15
+T04,Tecnología de Computadores,7
+T04,Estructura de Computadores,19
+T04,Segundo Curso,36
+T04,Estadística,9
+T04,Informática Básica,6
+T04,Programación de Ordenadores,5
+T04,Adaptación,4
+T04,Enseñanza-Aprendizaje,4
+T04,Ingenierías,4
+T04,Matemáticas,11
+T04,Proyecto,7
+T04,Sistemas Digitales,7
+T05,Programación,137
+T05,Paradigmas de Programación,7
+T05,Lenguajes de Programación,14
+T05,Programación de Computadores,4
+T05,Participación Activa,15
+T05,Programación Estructurada,6
+T05,Compilador,6
+T05,Algorítmica,8
+T05,Pascal,4
+T05,Ejercicios Prácticos,7
+T05,Adaptación de Contenidos,4
+T05,Documentación,4
+T05,Ingeniería Química,4
+T05,Autorregulación,5
+T05,Adaptación Curricular,7
+T05,Ejercicios,8
+T06,Trabajo en Equipo,109
+T06,Habilidades Blandas,8
+T06,Mejora Continua,12
+T06,Gestión de Proyectos Informáticos,5
+T06,Gestión de Proyectos,34
+T06,TIC,12
+T06,Aprendizaje Experiencial,4
+T06,Soft Skills,6
+T06,Gestión del Tiempo,7
+T06,Máster Universitario en Ingeniería Informática,4
+T06,STEM,6
+T06,Calidad Docente,10
+T06,Coordinación,5
+T06,Dirección de Proyectos,6
+T06,Evaluación entre Compañeros,4
+T06,Ingeniería de Telecomunicación,5
+T06,Planificación Docente,5
+T07,Clase Invertida,38
+T07,Aprendizaje Cooperativo,37
+T07,Tasa de Abandono,7
+T07,Metodologías Activas,29
+T07,Asistencia a Clase,8
+T07,Absentismo,10
+T07,Tasa de Éxito,6
+T07,Responsabilidad,4
+T07,Vídeo,10
+T07,Portafolio,5
+T07,Educación Preuniversitaria,4
+T07,ePortfolio,4
+T07,Valoración del Alumnado,4
+T07,Estudio Autónomo,4
+T07,Telemática,5
+T07,Resultados de Aprendizaje,11
+T07,Percepción del Alumnado,6
+T07,Software Libre,7
+T08,Gamificación,48
+T08,Participación,26
+T08,competición,7
+T08,Kahoot,5
+T08,Socrative,5
+T08,Colaboración,18
+T08,concursos de programación,4
+T08,Concursos,4
+T08,Concurso,9
+T08,Cuestionario,19
+T08,Atención,6
+T08,Clase Magistral,13
+T08,Competitividad,6
+T08,Vídeo Docente,6
+T08,Implicación,7
+T08,Escape Room,5
+T08,proyectos,5
+T08,Seguimiento del Aprendizaje,7
+T09,Inteligencia Artificial Generativa,26
+T09,ChatGPT,20
+T09,Plagio,18
+T09,Pensamiento Crítico,20
+T09,LLM,5
+T09,Ética Académica,4
+T09,Creatividad,13
+T09,Comunicación,17
+T09,Educación Superior,19
+T09,Ingeniería,8
+T09,Docencia Universitaria,17
+T09,Proceso de Aprendizaje,5
+T09,Innovación,7
+T09,Redes Sociales,6
+T09,Retroalimentación Formativa,4
+T09,Educación Universitaria,6
+T09,Examen,7
+T09,Laboratorio,13
+T10,Estructuras de Datos,20
+T10,Java,44
+T10,Visualización de Algoritmos,6
+T10,Grafos,4
+T10,Aprendizaje Automático,17
+T10,Programación Orientada a Objetos,37
+T10,Algoritmos,12
+T10,Minería de Datos,12
+T10,Applet,4
+T10,Tipos Abstractos de Datos,4
+T10,Pseudocódigo,4
+T10,Matemática Discreta,11
+T10,Evaluación por Pares,16
+T10,Ingeniería Técnica en Informática,11
+T10,Algoritmia,7
+T10,Introducción a la Programación,17
+T11,Rendimiento Académico,121
+T11,Abandono,33
+T11,Primer Cuatrimestre,8
+T11,Fracaso Académico,6
+T11,Cálculo,4
+T11,Programación I,8
+T11,Fundamentos de Programación,14
+T11,CS1,4
+T11,Calificaciones,9
+T11,Desmotivación,7
+T11,Competencias Digitales,5
+T11,Formación Profesional,5
+T11,Recursividad,5
+T11,Opinión del Alumnado,10
+T12,Ingeniería del Software,109
+T12,Calidad del Software,8
+T12,Calidad de Software,4
+T12,UML,9
+T12,Sistemas de Información,13
+T12,Auditoría Informática,4
+T12,Orientación a Objetos,8
+T12,Ingeniería del Software II,5
+T12,Quinto Curso,11
+T12,Laboratorio de Ingeniería del Software,4
+T12,Análisis y Diseño,4
+T12,Ingeniería de Requisitos,4
+T12,Competencia Profesional,5
+T12,Generación de Código,5
+T12,Experiencia Piloto,8
+T12,GitHub,8
+T13,Inteligencia Artificial,89
+T13,Lógica,14
+T13,Prolog,6
+T13,Ingeniería del Conocimiento,11
+T13,Prácticas,12
+T13,Programación Lógica,4
+T13,Representación del Conocimiento,4
+T13,Deducción Natural,4
+T13,Visión Por Computador,4
+T13,Metodología Docente,22
+T13,Sistemas Inteligentes,6
+T13,Sistema de Evaluación,5
+T13,Razonamiento,5
+T13,Material Docente,6
+T13,Visión Artificial,6
+T13,Investigación,10
+T14,Juego Serio,20
+T14,Bachillerato,12
+T14,Pensamiento Computacional,25
+T14,Fundamentos de Informática,15
+T14,Evaluación de la Experiencia,9
+T14,Scratch,6
+T14,Formación del Profesorado,6
+T14,Ciclos Formativos,4
+T14,Secundaria,4
+T14,Ingeniería Técnica Industrial,10
+T14,Formación Práctica,4
+T14,Formación,5
+T14,Interés,6
+T14,Videojuego,8
+T15,Motivación,196
+T15,Autonomía,7
+T15,Aprendizaje Basado en Juegos,5
+T15,Comprensión,9
+T15,Rendimiento,11
+T15,Proyecto de Investigación,4
+T15,FPGA,5
+T15,Personalización,5
+T15,Redes,5
+T15,MATLAB,6
+T15,Proyecto de Innovación Docente,6
+T16,Integración Continua,7
+T16,Desarrollo de Software,36
+T16,Scrum,14
+T16,Testing,4
+T16,Metodologías Ágiles,9
+T16,Desarrollo Ágil,5
+T16,Prácticas de Programación,16
+T16,Ingeniería de Software,14
+T16,Accesibilidad,5
+T16,Control de Versiones,5
+T16,Coordinación de Asignaturas,5
+T17,Docencia en Línea,55
+T17,Máster,9
+T17,HTML,5
+T17,JavaScript,5
+T17,Docencia Presencial,36
+T17,Semipresencialidad,15
+T17,Grado,6
+T17,MOOC,6
+T17,XML,4
+T18,Redes de Computadores,16
+T18,Prácticas de Laboratorio,40
+T18,Virtualización,14
+T18,Ensamblador,10
+T18,WebCT,6
+T18,Arquitectura y Tecnología de Computadores,6
+T18,Máquina Virtual,5
+T18,Sistemas Operativos,41
+T18,Sistemas de Información Geográfica,5
+T18,Aplicación Web,10
+T19,Aprendizaje Basado en Proyectos,112
+T19,Programación de Microcontroladores,5
+T19,ABP,9
+T19,Microcontrolador,10
+T19,Lenguaje C,11
+T19,Seguimiento,7
+T19,Evaluación entre Pares,4
+T19,Primer Semestre,5
+T20,Corrección Automática,27
+T20,Evaluación Automática,19
+T20,Moodle,32
+T20,Retroalimentación Automática,4
+T20,Examen Tipo Test,4
+T20,Calidad del Código,5
+T20,Pruebas Unitarias,4
+T20,Cuestionarios,4
+T20,Realimentación,7
+T20,Test,6
+T20,Learning Analytics,9
+T21,Brecha de Género,27
+T21,Género,9
+T21,Perspectiva de Género,11
+T21,Igualdad de género,5
+T21,Diversidad,4
+T21,Ciencias de la Computación,7
+T21,Estudios de Informática,4
+T21,Objetivos de Desarrollo Sostenible,10
+T21,Inserción Laboral,5
+T21,Encuesta,17
+T22,Lenguaje Ensamblador,12
+T22,ARM,7
+T22,Arquitectura de Computadores,52
+T22,Arquitectura ARM,4
+T22,Lenguaje Máquina,4
+T22,Unidad de Control,4
+T22,Raspberry Pi,4
+T22,Unidad Aritmético-Lógica,4
+T22,Primeros Cursos,10
+T22,Depuración,5
+T22,Procesador,4
+T22,Simulación,13
+T23,Aprendizaje Activo,52
+T23,Metacognición,5
+T23,COVID-19,8
+T23,Resultados Académicos,12
+T23,Aprendizaje Basado en Problemas,22
+T23,Docencia Híbrida,4
+T23,Implicación del Alumnado,4
+T23,Dispositivo Móvil,5
+T23,Entregables,5
+T24,Bases de Datos,50
+T24,Calidad,8
+T24,Desarrollo de Aplicaciones Web,4
+T24,Tecnologías Web,5
+T24,Fiabilidad,4
+T24,Satisfacción,10
+T24,Diseño de Bases de Datos,7
+T24,SQL,10
+T24,Bases de Datos Relacionales,5
+T25,Rúbrica,25
+T25,motivación alumnado,4
+T25,Comunicación Oral,18
+T25,rúbricas,5
+T25,Exposición Oral,4
+T25,Motivación del Alumnado,9
+T25,Participación del Alumnado,7
+T25,Comunicación Escrita,4
+T25,Metodologías Docentes,12
+T25,Evaluación por Competencias,6
+T25,Tutoría,6
+T25,Debate,9
+T26,Trabajo en Grupo,39
+T26,Wiki,9
+T26,Aprendizaje Colaborativo,31
+T26,Web 2.0,6
+T26,Evaluación Final,4
+T26,Sistemas Distribuidos,6
+T26,Introducción a los Ordenadores,7
+T27,Diseño de Software,12
+T27,E-Learning,15
+T27,Desarrollo Web,6
+T27,Proyectos de Software,4
+T27,Patrones de Diseño,7
+T27,Campus Virtual,13
+T27,Tecnologías de la Información y la Comunicación,15
+T28,Evaluación,126
+T28,Análisis,6
+T28,Desempeño Académico,4
+T28,Aceptación del Alumnado,6
+T28,Trabajos Prácticos,6
+T28,Análisis Estadístico,7
+T28,Reflexión,7
+T29,Evaluación Continuada,5
+T29,Internet,28
+T29,Fundamentos de Computadores,11
+T29,Retroalimentación,32
+T29,Base de Datos,4
+T29,Feedback,8
+T29,Nuevas Tecnologías,10
+T30,Investigación-Acción,7
+T30,investigación educativa,5
+T30,Innovación Docente,43
+T30,Innovación Educativa,12
+T30,Jerarquía de Memoria,8
+T30,Evaluación del Aprendizaje,13
+T30,Estilos de Aprendizaje,8
+T31,Software,9
+T31,recurso docente,9
+T31,Simulador,13
+T31,Robótica,14
+T31,Arduino,12
+T31,Trabajo Autónomo,11
+T31,Satisfacción del Alumnado,34
+T31,Hardware,5
+T31,Sensores,5
+T31,Calidad de la Docencia,5
+T32,Programación Paralela,13
+T32,Aprendizaje Autónomo,51
+T32,Computación Paralela,6
+T32,Enseñanza Universitaria,7
+T32,Multimedia,9
+T33,Informática Industrial,15
+T33,Colaboración con Empresas,4
+T33,Proyecto Fin de Carrera,18
+T33,Control,4
+T33,Ingeniería en Informática,18
+T34,Lenguajes Formales,6
+T34,Teoría de Autómatas y Lenguajes Formales,8
+T34,Autómatas Finitos,6
+T34,Seguimiento del Alumnado,6
+T35,Asignatura Optativa,9
+T35,Interés del Alumnado,4
+T35,Historia de la Informática,5
+T35,Cuarto Curso,19
+T35,Coordinación entre Asignaturas,13
+T36,Compiladores,10
+T36,Segundo Ciclo,11
+T36,Procesadores de Lenguaje,4
+T36,Primer Ciclo,4
+T36,Lenguaje de Programación,10
+T37,Desarrollo de Aplicaciones,7
+T37,Redes de Ordenadores,8
+T37,Laboratorio de Redes,4
+T37,Tercer Curso,30
+T38,Ingeniería de la Programación,4
+T38,Ingeniero Técnico en Informática,4
+T38,Ingeniero en Informática,9
+,Seguridad Informática,9
+,Informática Gráfica,8
+,Tecnologías de la Información,8
+,Correo Electrónico,7
+,Procesadores de Lenguajes,7
+,Windows,7
+,Análisis de Resultados,6
+,Enseñanza de la Informática,6
+,Herramienta Didáctica,6
+,Interfaz de Usuario,6
+,Lección Magistral,6
+,Métodos Docentes,6
+,Proyecto de Innovación Educativa,6
+,Recursos Docentes,6
+,Segundo Cuatrimestre,6
+,Análisis de Datos,5
+,Calificación,5
+,Cloud Computing,5
+,Compilación,5
+,Computación en la Nube,5
+,Código Abierto,5
+,Docencia No Presencial,5
+,Docente,5
+,Empresa,5
+,Enseñanza de la Programación,5
+,Espacio Europeo de Enseñanza Superior,5
+,Informática de Gestión,5
+,Mapas Conceptuales,5
+,Metodología de la Programación,5
+,Plataforma Web,5
+,Programación Concurrente,5
+,Programación Imperativa,5
+,Python,5
+,Redes Bayesianas,5
+,Servicios Web,5
+,Sistemas Empotrados,5
+,Sistemas de Transmisión de Datos,5
+,Taxonomía de Bloom,5
+,Toma de Decisiones,5
+,Trabajo de Fin de Carrera,5
+,Web,5
+,metodología,5
+,Aula Virtual,4
+,Caso de Estudio,4
+,Ciencia de Datos,4
+,Dificultad Académica,4
+,Docencia en Inglés,4
+,Docentes,4
+,Educación Secundaria,4
+,Educación a Distancia,4
+,Evaluación Automatizada,4
+,Formación Docente,4
+,Física,4
+,Gestión,4
+,Herramienta de Simulación,4
+,Interactividad,4
+,Internet de las Cosas,4
+,Investigación Docente,4
+,Juez en Línea,4
+,Laboratorio Remoto,4
+,Laboratorio Virtual,4
+,Mapa Conceptual,4
+,Mejora del Aprendizaje,4
+,Métodos de Evaluación,4
+,Objetivos Formativos,4
+,Ordenador,4
+,Portal Web,4
+,Primer Año,4
+,Problemas Reales,4
+,Programación Básica,4
+,Programación Declarativa,4
+,Proyecto Final de Carrera,4
+,Práctica de Laboratorio,4
+,Role Playing,4
+,Talleres,4
+,Tecnologías de la Información y las Comunicaciones,4
+,Tutorías,4
+,Usabilidad,4

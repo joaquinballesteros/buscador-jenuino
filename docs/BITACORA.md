@@ -6,6 +6,30 @@ en el [README](../README.md).
 
 ---
 
+## 2026-11-06 · Revisión manual de los topics
+
+Para el artículo histórico hay que revisar los topics a mano (nombres,
+intrusos, fusiones). Editar `data/analysis/topics.csv` no sirve: es una salida
+que se sobrescribe, no está en git y quitar o mover filas no recalcula
+artículos, clase ni citas.
+
+La revisión se guarda en `revision_topics/` (versionada): `conceptos.csv` asigna
+cada concepto a un topic y `topics.csv` pone nombre, grupo, fusiones y
+descartes. Se eligió revisar **conceptos** y no filas de topics porque un topic
+*es* su conjunto de conceptos: mover un concepto cambia qué artículos entran, y
+así se recalcula todo con la misma regla que la detección. Además, la revisión
+no depende de la numeración T01…T38, que cambia con cualquier parámetro.
+
+Comprobado: la plantilla sin cambios reproduce exactamente la detección
+(topics, series, citas y flujo idénticos); mover, quitar, añadir, dividir,
+fusionar, descartar y duplicar un concepto en dos topics funcionan; se detectan
+fusiones circulares, destinos inexistentes y conceptos con erratas; lee CSV con
+coma o punto y coma (Excel en español). El resumen de la revisión queda en
+`meta.revision` de `evolucion.json`, para cuantificar la intervención manual en
+el método del artículo.
+
+---
+
 ## 2026-11-05 · Gráfica temporal de los resultados
 
 Propuesta del usuario: una gráfica de barras con los resultados por año (eje X

@@ -6,6 +6,7 @@ from jenui.analysis.topic_analysis import AnalysisOptions, TopicAnalysis
 from jenui.analysis.topic_detector import Topic, TopicDetector
 from jenui.analysis.topic_evolution import EmergingConcept, TopicEvolution, TopicProfile, TopicSeries
 from jenui.analysis.topic_flow import TopicFlow, TopicFlowBuilder
+from jenui.analysis.topic_review import ReviewSummary, TopicReview
 
 __all__ = [
     "TopicAnalysis", "AnalysisOptions", "ReportWriter",
@@ -13,5 +14,6 @@ __all__ = [
     "Topic", "TopicDetector",
     "TopicEvolution", "TopicSeries", "TopicProfile", "EmergingConcept",
     "TopicFlow", "TopicFlowBuilder",
+    "TopicReview", "ReviewSummary",
     "CitationNetwork", "CitationStats",
 ]

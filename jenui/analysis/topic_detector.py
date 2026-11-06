@@ -18,8 +18,10 @@ class Topic:
 
     id: str
     concepts: list[str]            # claves, de más a menos central
-    label: str
+    label: str                     # automática: sus tres conceptos más centrales
     articles: set[str] = field(default_factory=set)
+    name: str = ""                 # nombre puesto en la revisión manual
+    group: str = ""                # familia temática de la revisión manual
 
 
 class TopicDetector:
@@ -80,24 +82,44 @@ class TopicDetector:
         communities = nx.community.louvain_communities(
             graph, weight="weight", resolution=self.resolution, seed=self.seed
         )
-        topics = []
-        for community in communities:
-            if len(community) < self.min_size:
-                continue
-            strength = dict(graph.subgraph(community).degree(weight="weight"))
-            ordered = sorted(community, key=lambda c: (-strength[c], c))
-            members = {a for a, cs in concepts.items()
-                       if len(cs & community) >= self.min_shared}
-            if not members:
-                continue
-            label = " · ".join(corpus.label(c) for c in ordered[:3])
-            topics.append(Topic("", ordered, label, members))
+        topics = [self._topic(graph, community, concepts, corpus)
+                  for community in communities if len(community) >= self.min_size]
+        topics = [t for t in topics if t is not None]
 
         topics.sort(key=lambda t: (-len(t.articles), t.label))
         width = len(str(len(topics)))
         for number, topic in enumerate(topics, start=1):
             topic.id = f"{prefix}{number:0{max(width, 2)}d}"
         return topics
+
+    def topics_from_groups(self, corpus: ConceptCorpus,
+                           groups: dict[str, set[str]]) -> list[Topic]:
+        """Topics con los conceptos fijados a mano (ver :class:`TopicReview`).
+
+        Se construyen como los detectados (orden de los conceptos, artículos
+        miembros, etiqueta), con el identificador que trae cada grupo. Aquí sí
+        cuentan los hubs: si alguien pone uno en un topic, es a propósito.
+        """
+        concepts = {a: corpus.article_concepts[a] for a in sorted(corpus.article_concepts)}
+        graph = self.cooccurrence_graph(concepts)
+        topics = []
+        for topic_id, group in sorted(groups.items()):
+            topic = self._topic(graph, set(group), concepts, corpus)
+            if topic is not None:
+                topic.id = topic_id
+                topics.append(topic)
+        topics.sort(key=lambda t: (-len(t.articles), t.label))
+        return topics
+
+    def _topic(self, graph: nx.Graph, community: set[str], concepts: dict[str, set[str]],
+               corpus: ConceptCorpus) -> Topic | None:
+        strength = dict(graph.subgraph(community).degree(weight="weight"))
+        ordered = sorted(community, key=lambda c: (-strength.get(c, 0), c))
+        members = {a for a, cs in concepts.items() if len(cs & community) >= self.min_shared}
+        if not members:
+            return None
+        label = " · ".join(corpus.label(c) for c in ordered[:3])
+        return Topic("", ordered, label, members)
 
     def cooccurrence_graph(self, concepts: dict[str, set[str]]) -> nx.Graph:
         df = Counter(c for cs in concepts.values() for c in cs)

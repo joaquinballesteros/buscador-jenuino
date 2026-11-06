@@ -335,6 +335,7 @@ GraphML, y recarga solo lo que cambió. Consecuencias prácticas:
 | `analysis/concept_source.py` | `ConceptCorpusBuilder` | conceptos por artículo (grafo y/o keywords) |
 | `analysis/topic_detector.py` | `TopicDetector` | topics = comunidades de coocurrencia |
 | `analysis/topic_evolution.py` | `TopicEvolution` | series, clases y conceptos emergentes |
+| `analysis/topic_review.py` | `TopicReview` | revisión manual de los topics (`revision_topics/`) |
 | `analysis/topic_flow.py` | `TopicFlowBuilder` | topics por ventanas y sus enlaces |
 | `analysis/citation_links.py` | `CitationNetwork` | validación por citas internas |
 | `analysis/topic_analysis.py` | `TopicAnalysis` | orquesta el análisis |
@@ -350,10 +351,10 @@ no llama al LLM (solo lee el GraphML) y degrada a palabras clave si no hay grafo
 
 ```
 corpus.jsonl ─┐
-GraphML ──────┼─> ConceptCorpusBuilder ─> TopicDetector ─> TopicEvolution ─┐
-alias ────────┘   (ruido, hubs)            (Louvain)        (series, clase)  ├─> ReportWriter
-                                          TopicFlowBuilder ─────────────────┤   (CSV, JSON, HTML)
-referencias_jenui.csv ─> CitationNetwork ───────────────────────────────────┘
+GraphML ──────┼─> ConceptCorpusBuilder ─> TopicDetector ─> TopicReview ─> TopicEvolution ─┐
+alias ────────┘   (ruido, hubs)            (Louvain)     (revisión a mano) (series, clase) ├─> ReportWriter
+                                          TopicFlowBuilder ───────────────────────────────┤   (CSV, JSON, HTML)
+referencias_jenui.csv ─> CitationNetwork ─────────────────────────────────────────────────┘
 ```
 
 **Grafo.** Por defecto lee el mismo grafo que el buscador (`analysis.grafo_dir:
@@ -372,6 +373,19 @@ entran en la detección de comunidades, donde conectarían todo con todo.
 **Topics** (`TopicDetector`). Coocurrencia con peso de Salton y Louvain con
 semilla fija (reproducible). Un artículo pertenece a un topic si tiene al
 menos `min_conceptos_articulo` de sus conceptos.
+
+**Revisión manual** (`TopicReview`). Louvain propone y el investigador
+decide: `revision_topics/conceptos.csv` asigna cada concepto a un topic
+(mover, quitar, añadir, dividir) y `revision_topics/topics.csv` pone nombre,
+grupo, fusiones y descartes. Si existe, se aplica tras la detección y los
+topics se reconstruyen con `TopicDetector.topics_from_groups` (mismo orden de
+conceptos y misma regla de pertenencia), así que todo lo posterior se calcula
+sobre ellos. Una revisión sin cambios reproduce exactamente la detección. La
+revisión fija conceptos, no números de topic, y por eso sobrevive a cambios de
+parámetros; `meta.revision` del JSON cuantifica la intervención manual
+(conceptos movidos, topics fusionados…) para el apartado de método. Está fuera
+de `data/` porque es una entrada y se versiona. Plantilla:
+`--plantilla-revision`; detección sin revisar: `--sin-revision`.
 
 **Clasificación** (`TopicEvolution.classify`). Sobre la prevalencia
 suavizada, con umbrales relativos al pico de cada topic:

@@ -312,6 +312,15 @@ autores: `python scripts/topic_evolution.py --fuente keywords`.
 
 Los umbrales están en `config.json` → `analysis`; el detalle, en
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#9-análisis-temporal-de-topics).
+
+### Revisión manual de los topics
+
+Los topics automáticos se corrigen a mano en
+[`revision_topics/`](revision_topics/README.md): `conceptos.csv` dice a qué
+topic pertenece cada concepto (cambiarlo lo mueve; vacío lo quita) y
+`topics.csv` pone nombre, grupo, fusiones y descartes. `topic_evolution.py`
+aplica la revisión y recalcula todo; `--sin-revision` muestra la detección
+automática. No se edita `data/analysis/topics.csv`, que es una salida.
 Opciones útiles de `topic_evolution.py`: `--resolucion 1.5` (topics más finos),
 `--desde 1997 --hasta 2026`, `--min-articulos 6`.
 

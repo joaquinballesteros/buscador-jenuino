@@ -11,6 +11,12 @@ gráficas. Tarda segundos. Ejecutar desde la raíz del proyecto:
     python scripts/topic_evolution.py --fuente keywords      # sin grafo: palabras clave
     python scripts/topic_evolution.py --rag-dir rag_storage_meta   # otro grafo
 
+Revisión manual de los topics (ver revision_topics/README.md):
+
+    python scripts/topic_evolution.py --plantilla-revision   # crea revision_topics/*.csv
+    python scripts/topic_evolution.py                        # aplica la revisión si existe
+    python scripts/topic_evolution.py --sin-revision         # la detección automática, sin tocar
+
 Los parámetros están en config.json -> analysis. La lógica vive en
 jenui.analysis.TopicAnalysis.
 """
@@ -41,6 +47,11 @@ def main() -> None:
                         help="artículos mínimos para que un concepto cuente")
     parser.add_argument("--salida", default=None,
                         help="carpeta de resultados (por defecto, data/analysis)")
+    review = parser.add_mutually_exclusive_group()
+    review.add_argument("--sin-revision", action="store_true",
+                        help="no aplicar la revisión manual de revision_topics/")
+    review.add_argument("--plantilla-revision", action="store_true",
+                        help="crear en revision_topics/ la plantilla para revisar los topics")
     args = parser.parse_args()
 
     base = Settings.load()
@@ -50,6 +61,7 @@ def main() -> None:
     result = TopicAnalysis(settings, AnalysisOptions(
         source=args.fuente, year_from=args.desde, year_to=args.hasta,
         resolution=args.resolucion, min_df=args.min_articulos,
+        review=not args.sin_revision, review_template=args.plantilla_revision,
     )).run()
 
     out_dir = Path(args.salida) if args.salida else settings.paths.analysis_dir

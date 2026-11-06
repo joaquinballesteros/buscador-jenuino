@@ -103,6 +103,11 @@ class Paths:
     def chunks_kv_file(self) -> Path:
         return self.rag_dir / "kv_store_text_chunks.json"
 
+    @property
+    def topic_review_dir(self) -> Path:
+        """Revisión manual de los topics (versionada, a diferencia de data/analysis)."""
+        return self.root / "revision_topics"
+
     # --- evaluación de la búsqueda ---
     @property
     def evaluation_dir(self) -> Path:
