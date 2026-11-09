@@ -6,6 +6,17 @@ en el [README](../README.md).
 
 ---
 
+## 2026-11-09 · jenui.uma.es con 3,6 GB: fuera el modo ahorro
+
+El SCI amplió la VM de 1,6 a 3,6 GB. Se retiró
+`/etc/systemd/system/jenui.service.d/memoria.conf` (`JENUI_OLLAMA_KEEP_ALIVE=0`;
+copia en `/root/respaldo/`) y bge-m3 queda cargado de forma permanente.
+Búsquedas: de 6-8 s a ~0,25 s (la primera tras reiniciar, ~3 s). Memoria libre
+con todo cargado: ~570 MB. Verificado por HTTPS: portada, `/evaluar`,
+`/api/status`, una búsqueda normal (13 resultados) y una ajena (con aviso).
+
+---
+
 ## 2026-11-06 · Revisión manual de los topics
 
 Para el artículo histórico hay que revisar los topics a mano (nombres,

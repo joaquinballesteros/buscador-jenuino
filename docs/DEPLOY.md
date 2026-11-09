@@ -225,7 +225,7 @@ en el servidor; `desplegar.sh` nunca los envía ni los pisa.
 | Servicio | `jenui.service` (systemd) |
 | nginx | `/etc/nginx/conf.d/jenui.conf`: 80 → 443; 443 → `127.0.0.1:8000`; página de mantenimiento si la app no responde; vacía `X-Remote-User` |
 | Certificado | del SCI (GEANT/HARICA, hasta mayo de 2027): `/etc/pki/tls/certs/jenui_uma_es_fullchain.crt` (certificado + intermedio) y `/etc/pki/tls/private/jenui_uma_es.key` |
-| Memoria | el agente de seguridad corporativo (SentinelOne, `s1-*`) ocupa ~520 MB. Buscador ~600 MB + bge-m3 ~1,27 GB: con 1,6 GB solo cabe en **modo ahorro** (`JENUI_OLLAMA_KEEP_ALIVE=0` en `/etc/systemd/system/jenui.service.d/memoria.conf`: búsquedas de 6-8 s, `/evaluar` rápida). Con ~4 GB, borra ese fichero y reinicia: búsquedas de ~0,1 s |
+| Memoria | 3,6 GB desde el 9-11-2026 (antes 1,6 GB). El agente de seguridad corporativo (SentinelOne, `s1-*`) ocupa ~520 MB; buscador ~600 MB; bge-m3 ~1,2 GB, **siempre cargado** (`keep_alive -1`). Quedan ~570 MB libres. Búsquedas de ~0,25 s (la primera tras reiniciar, ~3 s, mientras carga el modelo). Con 1,6 GB hacía falta el **modo ahorro** (`JENUI_OLLAMA_KEEP_ALIVE=0` en `/etc/systemd/system/jenui.service.d/memoria.conf`, ya retirado; copia en `/root/respaldo/`): búsquedas de 6-8 s |
 
 Para instalar paquetes del sistema en esta máquina:
 
