@@ -53,9 +53,13 @@ pip install -r requirements.txt
 
 ## Uso
 
-**Si acabas de clonar el repo, no hace falta construir nada.** El índice
-vectorial y el grafo de los artículos ya existentes se versionan (`data/`,
-`rag_storage/`), así que solo con instalar dependencias ya puedes buscar:
+**Si acabas de clonar el repo, falta el corpus y el índice vectorial.** El
+grafo de conceptos sí se versiona (`rag_storage/`, horas de LLM), pero los
+ficheros de más de 50 MB no: `data/corpus.jsonl` y `data/fulltext_vectors.npy`
+(y dos `kv_store` grandes de LightRAG). Se regeneran sin LLM: descarga de PDFs
+y fichas con `download_sources.py` y pasos 1-2 de
+[Construir el índice desde cero](#construir-el-índice-desde-cero)
+(`ingest.py`, `build_fulltext.py`). Con ellos en su sitio, basta con arrancar:
 
 ```bash
 ./scripts/run.sh           # arranca la web (usa el entorno virtual del proyecto)
@@ -128,9 +132,9 @@ descargado, lo salta.
 
 ## Construir el índice desde cero
 
-Necesario solo si partes de un corpus nuevo o distinto (o si borraste `data/`
-y `rag_storage/`): tras clonar el repo, el índice y el grafo de los artículos
-ya existentes vienen construidos y este paso no hace falta.
+Tras clonar el repo hay que regenerar el corpus y el índice vectorial (no se
+versionan por tamaño); el grafo de los artículos ya existentes viene construido,
+así que el paso del grafo solo hace falta con un corpus nuevo o distinto.
 
 ```bash
 # 1. PDFs + fichas -> data/corpus.jsonl (texto + metadatos + bibtex)   (segundos)

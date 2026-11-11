@@ -222,25 +222,23 @@ __marimo__/
 fichas/
 pdf/
 
-# Buscador JENUI: datos generados. Se versiona lo necesario para poder
-# descargar el repo y buscar sin tener que reconstruir el índice ni el grafo
-# (coste de horas de LLM); se excluye lo regenerable en local en minutos y
-# sin LLM, y los índices propios de LightRAG que este proyecto no usa (lee el
+# Buscador JENUI: datos generados. Se versiona el grafo (coste de horas de
+# LLM) y lo pequeño; NO se versiona nada de más de 50 MB (GitHub rechaza los
+# de más de 100 MB y avisa desde 50): corpus.jsonl (~58 MB, se regenera con
+# scripts/download_sources.py + ingest.py), fulltext_vectors.npy (~210 MB,
+# build_fulltext.py; minutos con la GPU) y dos kv_store de LightRAG (~60 MB).
+# Tampoco los índices propios de LightRAG que este proyecto no usa (lee el
 # GraphML directamente, no pasa por su vdb_*).
 data/*
-!data/corpus.jsonl
 !data/entity_aliases.json
 !data/index_manifest.json
-!data/fulltext_vectors.npy
 !data/fulltext_meta.json
 # excluidos: concept_vectors.npz y entity_name_vectors.npz — regenerables con
 # scripts/build_concepts.py y scripts/merge_aliases.py (local, sin LLM)
 
 rag_storage/*
 !rag_storage/graph_chunk_entity_relation.graphml
-!rag_storage/kv_store_text_chunks.json
 !rag_storage/kv_store_doc_status.json
-!rag_storage/kv_store_full_docs.json
 !rag_storage/kv_store_full_entities.json
 !rag_storage/kv_store_full_relations.json
 !rag_storage/kv_store_entity_chunks.json
@@ -248,7 +246,8 @@ rag_storage/*
 # excluidos: vdb_entities.json, vdb_relationships.json, vdb_chunks.json
 # (índice vectorial propio de LightRAG, no lo usa este proyecto) y
 # kv_store_llm_response_cache.json (caché de coste, no de estado) — entre
-# los cuatro suman ~950 MB y dos superan el límite de 100 MB de GitHub
+# los cuatro suman ~950 MB y dos superan el límite de 100 MB de GitHub;
+# kv_store_text_chunks.json y kv_store_full_docs.json (~60 MB cada uno)
 
 # Grafo del análisis temporal (scripts/topic_evolution.py): mismas reglas que
 # rag_storage, más su propio mapa de alias.
